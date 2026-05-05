@@ -1,30 +1,42 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import { Appointment, AppointmentContextType, Doctor, Hospital, DoctorAvailabilityItem } from '../types';
+import { useState, useEffect, type ReactNode } from 'react';
+import { Appointment, Doctor, Hospital, DoctorAvailabilityItem } from '../types';
 import { isApiError } from '@app/shared';
 import { apiMyAppointments, apiBookAppointment, apiCancelAppointment } from '../api/appointments';
 import { apiGetDoctor, apiGetDoctorAvailability, apiSearchDoctors, apiSearchHospitals } from '../api/search';
-import { useAuth } from './AuthContext';
-
-const AppointmentContext = createContext<AppointmentContextType | undefined>(undefined);
+import { useAuth } from './authStore';
+import { AppointmentContext } from './appointmentStore';
 
 export const AppointmentProvider = ({ children }: { children: ReactNode }) => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [hospitals, setHospitals] = useState<Hospital[]>([]);
   const { user } = useAuth();
+  const userId = user?.id;
 
   useEffect(() => {
-    void refreshHospitals();
-    void refreshDoctors();
+    const run = async () => {
+      const [h, d] = await Promise.all([
+        apiSearchHospitals({ page: 1, limit: 200 }),
+        apiSearchDoctors({ page: 1, limit: 200 })
+      ]);
+      if (!isApiError(h)) setHospitals(h.data.items);
+      if (!isApiError(d)) setDoctors(d.data.items);
+    };
+    void run();
   }, []);
 
   useEffect(() => {
-    if (!user) {
+    if (!userId) {
       setAppointments([]);
       return;
     }
-    void refreshMyAppointments();
-  }, [user?.id]);
+    const run = async () => {
+      const res = await apiMyAppointments();
+      if (isApiError(res)) return;
+      setAppointments(res.data.items);
+    };
+    void run();
+  }, [userId]);
 
   const refreshDoctors = async (params?: { query?: string; specialty?: string; hospitalId?: string }) => {
     const res = await apiSearchDoctors({ ...params, page: 1, limit: 200 });
@@ -90,12 +102,4 @@ export const AppointmentProvider = ({ children }: { children: ReactNode }) => {
       {children}
     </AppointmentContext.Provider>
   );
-};
-
-export const useAppointments = () => {
-  const context = useContext(AppointmentContext);
-  if (context === undefined) {
-    throw new Error('useAppointments must be used within an AppointmentProvider');
-  }
-  return context;
 };

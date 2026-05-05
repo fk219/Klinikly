@@ -1,9 +1,9 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import { User, AuthContextType } from '../types';
+import { useState, useEffect, type ReactNode } from 'react';
+import { User } from '../types';
 import { isApiError } from '@app/shared';
 import { apiLogin, apiLogout, apiRegister } from '../api/auth';
+import { AuthContext } from './authStore';
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const userKey = 'currentUser';
 const tokenKey = 'accessToken';
 
@@ -73,12 +73,4 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       {children}
     </AuthContext.Provider>
   );
-};
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
 };

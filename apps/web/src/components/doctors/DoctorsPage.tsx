@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, type FC } from 'react';
 import { Search, Filter, Star, Clock, DollarSign, Video } from 'lucide-react';
-import { useAppointments } from '../../contexts/AppointmentContext';
+import { useAppointments } from '../../contexts/appointmentStore';
 import { Doctor } from '../../types';
 import { Button } from '../common/Button';
 import { gsap } from 'gsap';

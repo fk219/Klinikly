@@ -11,7 +11,7 @@ import {
   Phone,
 } from 'lucide-react';
 import { Button } from '../common/Button';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../contexts/authStore';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 

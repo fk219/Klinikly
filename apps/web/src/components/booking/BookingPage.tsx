@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect, type FC } from 'react';
 import { Calendar, Clock, User, FileText, ArrowLeft, CheckCircle } from 'lucide-react';
-import { useAppointments } from '../../contexts/AppointmentContext';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAppointments } from '../../contexts/appointmentStore';
+import { useAuth } from '../../contexts/authStore';
 import { Button } from '../common/Button';
 import { Modal } from '../common/Modal';
 import { Doctor } from '../../types';

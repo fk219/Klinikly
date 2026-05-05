@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, type FC } from 'react';
 import { Stethoscope, Mail, Lock, User, Phone, Eye, EyeOff } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../contexts/authStore';
 import { Button } from '../common/Button';
 import { gsap } from 'gsap';
 

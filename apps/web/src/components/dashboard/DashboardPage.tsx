@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FC } from 'react';
 import { Calendar, Clock, User, Phone, Mail, Plus, X } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
-import { useAppointments } from '../../contexts/AppointmentContext';
+import { useAuth } from '../../contexts/authStore';
+import { useAppointments } from '../../contexts/appointmentStore';
 import { Button } from '../common/Button';
 import { Appointment, Doctor } from '../../types';
 
