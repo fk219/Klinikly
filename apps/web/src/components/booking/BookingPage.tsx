@@ -1,4 +1,4 @@
-import { useState, useEffect, type FC } from 'react';
+import { useMemo, useState, useEffect, type FC } from 'react';
 import { Calendar, Clock, User, FileText, ArrowLeft, CheckCircle } from 'lucide-react';
 import { useAppointments } from '../../contexts/AppointmentContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -12,21 +12,56 @@ interface BookingPageProps {
 }
 
 export const BookingPage: FC<BookingPageProps> = ({ onNavigate, doctorId }) => {
-  const { getDoctorById, bookAppointment } = useAppointments();
+  const { getDoctorById, getDoctorAvailability, bookAppointment } = useAppointments();
   const { user } = useAuth();
   const [doctor, setDoctor] = useState<Doctor | null>(null);
   const [selectedDate, setSelectedDate] = useState('');
-  const [selectedTime, setSelectedTime] = useState('');
+  const [selectedSlotStartAt, setSelectedSlotStartAt] = useState<string | null>(null);
   const [reason, setReason] = useState('');
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [isBooking, setIsBooking] = useState(false);
+  const [availability, setAvailability] = useState<Array<{ id: string; startAt: string }>>([]);
 
   useEffect(() => {
-    if (doctorId) {
-      const foundDoctor = getDoctorById(doctorId);
-      setDoctor(foundDoctor || null);
+    const run = async () => {
+      if (!doctorId) return;
+      const foundDoctor = await getDoctorById(doctorId);
+      setDoctor(foundDoctor);
+
+      const now = new Date();
+      const from = now.toISOString().slice(0, 10);
+      const toDate = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+      const to = toDate.toISOString().slice(0, 10);
+
+      const items = await getDoctorAvailability(doctorId, from, to);
+      setAvailability(items);
+    };
+    void run();
+  }, [doctorId, getDoctorAvailability, getDoctorById]);
+
+  const availabilityByDate = useMemo(() => {
+    const map = new Map<string, Array<{ startAt: string; time: string }>>();
+    for (const item of availability) {
+      const iso = new Date(item.startAt).toISOString();
+      const date = iso.slice(0, 10);
+      const time = iso.slice(11, 16);
+      const list = map.get(date) ?? [];
+      list.push({ startAt: item.startAt, time });
+      map.set(date, list);
     }
-  }, [doctorId, getDoctorById]);
+    for (const [k, v] of map.entries()) {
+      v.sort((a, b) => a.time.localeCompare(b.time));
+      map.set(k, v);
+    }
+    return map;
+  }, [availability]);
+
+  const availableDates = useMemo(() => Array.from(availabilityByDate.keys()).sort(), [availabilityByDate]);
+
+  const availableTimesForDate = useMemo(() => {
+    const list = availabilityByDate.get(selectedDate) ?? [];
+    return list.map((x) => x.time);
+  }, [availabilityByDate, selectedDate]);
 
   if (!user) {
     return (
@@ -56,37 +91,22 @@ export const BookingPage: FC<BookingPageProps> = ({ onNavigate, doctorId }) => {
     );
   }
 
-  const availableDates = Array.from(
-    new Set(doctor.availableSlots.filter(slot => slot.available).map(slot => slot.date))
-  ).sort();
-
-  const availableTimesForDate = doctor.availableSlots
-    .filter(slot => slot.date === selectedDate && slot.available)
-    .map(slot => slot.time)
-    .sort();
-
   const handleBooking = async () => {
-    if (!selectedDate || !selectedTime || !reason.trim()) {
+    if (!selectedDate || !selectedSlotStartAt || !reason.trim()) {
       alert('Please fill in all fields');
       return;
     }
 
     setIsBooking(true);
-    
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
 
-    bookAppointment({
-      patientId: user.id,
+    const ok = await bookAppointment({
       doctorId: doctor.id,
-      date: selectedDate,
-      time: selectedTime,
-      reason: reason.trim(),
-      status: 'scheduled'
+      slotStartAt: selectedSlotStartAt,
+      reason: reason.trim()
     });
 
     setIsBooking(false);
-    setShowConfirmation(true);
+    if (ok) setShowConfirmation(true);
   };
 
   const formatDate = (dateString: string) => {
@@ -131,7 +151,7 @@ export const BookingPage: FC<BookingPageProps> = ({ onNavigate, doctorId }) => {
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 sticky top-8">
               <div className="text-center mb-6">
                 <img
-                  src={doctor.avatar}
+                  src={doctor.avatarUrl ?? ''}
                   alt={doctor.name}
                   className="w-24 h-24 rounded-full mx-auto mb-4 object-cover"
                 />
@@ -142,7 +162,7 @@ export const BookingPage: FC<BookingPageProps> = ({ onNavigate, doctorId }) => {
               <div className="space-y-4 text-sm">
                 <div className="flex items-center">
                   <User className="h-4 w-4 text-gray-400 mr-2" />
-                  <span>{doctor.experience} years experience</span>
+                  <span>{doctor.experience ? `${doctor.experience} years experience` : 'Experience —'}</span>
                 </div>
                 <div className="flex items-center">
                   <Clock className="h-4 w-4 text-gray-400 mr-2" />
@@ -173,7 +193,7 @@ export const BookingPage: FC<BookingPageProps> = ({ onNavigate, doctorId }) => {
                         key={date}
                         onClick={() => {
                           setSelectedDate(date);
-                          setSelectedTime(''); // Reset time when date changes
+                          setSelectedSlotStartAt(null);
                         }}
                         className={`p-3 rounded-lg border-2 text-sm font-medium transition-all ${
                           selectedDate === date
@@ -198,9 +218,13 @@ export const BookingPage: FC<BookingPageProps> = ({ onNavigate, doctorId }) => {
                       {availableTimesForDate.map(time => (
                         <button
                           key={time}
-                          onClick={() => setSelectedTime(time)}
+                          onClick={() => {
+                            const slot = (availabilityByDate.get(selectedDate) ?? []).find((x) => x.time === time);
+                            if (slot) setSelectedSlotStartAt(slot.startAt);
+                          }}
                           className={`p-3 rounded-lg border-2 text-sm font-medium transition-all ${
-                            selectedTime === time
+                            selectedSlotStartAt &&
+                            new Date(selectedSlotStartAt).toISOString().slice(11, 16) === time
                               ? 'border-blue-500 bg-blue-50 text-blue-700'
                               : 'border-gray-200 hover:border-gray-300 text-gray-600'
                           }`}
@@ -229,7 +253,7 @@ export const BookingPage: FC<BookingPageProps> = ({ onNavigate, doctorId }) => {
                 </div>
 
                 {/* Summary */}
-                {selectedDate && selectedTime && (
+                {selectedDate && selectedSlotStartAt && (
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <h4 className="font-medium text-gray-900 mb-3">Appointment Summary</h4>
                     <div className="space-y-2 text-sm">
@@ -243,7 +267,9 @@ export const BookingPage: FC<BookingPageProps> = ({ onNavigate, doctorId }) => {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Time:</span>
-                        <span className="font-medium">{formatTime(selectedTime)}</span>
+                        <span className="font-medium">
+                          {formatTime(new Date(selectedSlotStartAt).toISOString().slice(11, 16))}
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Consultation Fee:</span>
@@ -257,7 +283,7 @@ export const BookingPage: FC<BookingPageProps> = ({ onNavigate, doctorId }) => {
                 <div className="pt-6">
                   <Button
                     onClick={handleBooking}
-                    disabled={!selectedDate || !selectedTime || !reason.trim()}
+                    disabled={!selectedDate || !selectedSlotStartAt || !reason.trim()}
                     loading={isBooking}
                     className="w-full"
                     size="lg"
@@ -287,7 +313,8 @@ export const BookingPage: FC<BookingPageProps> = ({ onNavigate, doctorId }) => {
           </h3>
           <p className="text-gray-600 mb-6">
             Your appointment with {doctor.name} has been confirmed for{' '}
-            {formatDate(selectedDate)} at {formatTime(selectedTime)}.
+            {formatDate(selectedDate)} at{' '}
+            {selectedSlotStartAt ? formatTime(new Date(selectedSlotStartAt).toISOString().slice(11, 16)) : ''}.
           </p>
           <div className="space-y-3">
             <Button

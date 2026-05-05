@@ -10,12 +10,19 @@ interface DoctorsPageProps {
 }
 
 export const DoctorsPage: FC<DoctorsPageProps> = ({ onNavigate }) => {
-  const { doctors } = useAppointments();
+  const { doctors, refreshDoctors } = useAppointments();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSpecialty, setSelectedSpecialty] = useState('');
   const [sortBy, setSortBy] = useState('rating');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const doctorsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    void refreshDoctors({
+      query: searchTerm.trim() ? searchTerm.trim() : undefined,
+      specialty: selectedSpecialty.trim() ? selectedSpecialty.trim() : undefined
+    });
+  }, [searchTerm, selectedSpecialty, refreshDoctors]);
 
   useEffect(() => {
     if (doctorsRef.current) {
@@ -31,7 +38,7 @@ export const DoctorsPage: FC<DoctorsPageProps> = ({ onNavigate }) => {
         }
       );
     }
-  }, [searchTerm, selectedSpecialty, sortBy]);
+  }, [doctors, sortBy]);
 
   const specialties = Array.from(new Set(doctors.map(doctor => doctor.specialty))).sort();
 
@@ -43,8 +50,8 @@ export const DoctorsPage: FC<DoctorsPageProps> = ({ onNavigate }) => {
       return matchesSearch && matchesSpecialty;
     })
     .sort((a, b) => {
-      if (sortBy === 'rating') return b.rating - a.rating;
-      if (sortBy === 'experience') return b.experience - a.experience;
+      if (sortBy === 'rating') return (b.rating ?? 0) - (a.rating ?? 0);
+      if (sortBy === 'experience') return (b.experience ?? 0) - (a.experience ?? 0);
       if (sortBy === 'fee') return a.consultationFee - b.consultationFee;
       return a.name.localeCompare(b.name);
     });
@@ -53,14 +60,14 @@ export const DoctorsPage: FC<DoctorsPageProps> = ({ onNavigate }) => {
     <div className="doctor-card bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 border border-gray-100 hover:border-teal-200 group overflow-hidden">
       <div className="relative">
         <img
-          src={doctor.avatar}
+          src={doctor.avatarUrl ?? ''}
           alt={doctor.name}
           className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-500"
         />
         <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full">
           <div className="flex items-center">
             <Star className="h-4 w-4 text-yellow-400 fill-current mr-1" />
-            <span className="text-sm font-semibold">{doctor.rating}</span>
+            <span className="text-sm font-semibold">{doctor.rating ?? '—'}</span>
           </div>
         </div>
         <div className="absolute bottom-4 left-4 bg-gradient-to-r from-teal-600 to-emerald-600 text-white px-3 py-1 rounded-full text-sm font-medium">
@@ -76,7 +83,7 @@ export const DoctorsPage: FC<DoctorsPageProps> = ({ onNavigate }) => {
         <div className="flex items-center space-x-4 text-sm text-gray-600 mb-4">
           <div className="flex items-center">
             <Clock className="h-4 w-4 mr-1 text-teal-500" />
-            <span>{doctor.experience} years</span>
+            <span>{doctor.experience ? `${doctor.experience} years` : '—'}</span>
           </div>
           <div className="flex items-center">
             <DollarSign className="h-4 w-4 mr-1 text-teal-500" />

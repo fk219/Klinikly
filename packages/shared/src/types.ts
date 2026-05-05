@@ -29,6 +29,8 @@ export type Doctor = {
   name: string;
   specialty: string;
   bio: string;
+  education?: string;
+  experience?: number;
   consultationFee: number;
   rating?: number;
   avatarUrl?: string;
@@ -56,4 +58,3 @@ export type Appointment = {
   status: AppointmentStatus;
   createdAt: string;
 };
-

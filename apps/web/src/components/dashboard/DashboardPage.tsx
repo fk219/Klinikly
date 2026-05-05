@@ -1,9 +1,9 @@
-import { useState, type FC } from 'react';
+import { useEffect, useMemo, useState, type FC } from 'react';
 import { Calendar, Clock, User, Phone, Mail, Plus, X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAppointments } from '../../contexts/AppointmentContext';
 import { Button } from '../common/Button';
-import { Appointment } from '../../types';
+import { Appointment, Doctor } from '../../types';
 
 interface DashboardPageProps {
   onNavigate: (page: string) => void;
@@ -11,8 +11,35 @@ interface DashboardPageProps {
 
 export const DashboardPage: FC<DashboardPageProps> = ({ onNavigate }) => {
   const { user } = useAuth();
-  const { getAppointmentsByPatient, getDoctorById, cancelAppointment } = useAppointments();
+  const { appointments, getDoctorById, cancelAppointment, refreshMyAppointments } = useAppointments();
   const [activeTab, setActiveTab] = useState<'upcoming' | 'past'>('upcoming');
+  const [doctorMap, setDoctorMap] = useState<Record<string, Doctor>>({});
+  const userId = user?.id;
+
+  useEffect(() => {
+    if (!userId) return;
+    void refreshMyAppointments();
+  }, [userId, refreshMyAppointments]);
+
+  useEffect(() => {
+    const run = async () => {
+      const ids = Array.from(new Set(appointments.map((a) => a.doctorId)));
+      const missing = ids.filter((id) => !doctorMap[id]);
+      if (!missing.length) return;
+
+      const pairs = await Promise.all(missing.map(async (id) => [id, await getDoctorById(id)] as const));
+      setDoctorMap((prev) => {
+        const next: Record<string, Doctor> = { ...prev };
+        for (const [id, doc] of pairs) {
+          if (doc) next[id] = doc;
+        }
+        return next;
+      });
+    };
+    void run();
+  }, [appointments, doctorMap, getDoctorById]);
+
+  const now = useMemo(() => new Date(), []);
 
   if (!user) {
     return (
@@ -26,19 +53,14 @@ export const DashboardPage: FC<DashboardPageProps> = ({ onNavigate }) => {
       </div>
     );
   }
-
-  const appointments = getAppointmentsByPatient(user.id);
-  const now = new Date();
   
-  const upcomingAppointments = appointments.filter(apt => {
-    const aptDate = new Date(`${apt.date}T${apt.time}`);
-    return aptDate > now && apt.status === 'scheduled';
-  }).sort((a, b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime());
+  const upcomingAppointments = appointments
+    .filter((apt) => new Date(apt.slotStartAt) > now && apt.status === 'scheduled')
+    .sort((a, b) => new Date(a.slotStartAt).getTime() - new Date(b.slotStartAt).getTime());
 
-  const pastAppointments = appointments.filter(apt => {
-    const aptDate = new Date(`${apt.date}T${apt.time}`);
-    return aptDate <= now || apt.status === 'completed' || apt.status === 'cancelled';
-  }).sort((a, b) => new Date(`${b.date}T${b.time}`).getTime() - new Date(`${a.date}T${a.time}`).getTime());
+  const pastAppointments = appointments
+    .filter((apt) => new Date(apt.slotStartAt) <= now || apt.status === 'completed' || apt.status === 'cancelled')
+    .sort((a, b) => new Date(b.slotStartAt).getTime() - new Date(a.slotStartAt).getTime());
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -50,35 +72,26 @@ export const DashboardPage: FC<DashboardPageProps> = ({ onNavigate }) => {
     });
   };
 
-  const formatTime = (timeString: string) => {
-    const [hours, minutes] = timeString.split(':');
-    const date = new Date();
-    date.setHours(parseInt(hours), parseInt(minutes));
-    return date.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    });
-  };
+  const formatTime = (dateTimeString: string) =>
+    new Date(dateTimeString).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 
-  const handleCancelAppointment = (appointmentId: string) => {
-    if (window.confirm('Are you sure you want to cancel this appointment?')) {
-      cancelAppointment(appointmentId);
-    }
+  const handleCancelAppointment = async (appointmentId: string) => {
+    if (!window.confirm('Are you sure you want to cancel this appointment?')) return;
+    await cancelAppointment(appointmentId);
   };
 
   const AppointmentCard = ({ appointment }: { appointment: Appointment }) => {
-    const doctor = getDoctorById(appointment.doctorId);
+    const doctor = doctorMap[appointment.doctorId];
     if (!doctor) return null;
 
-    const isUpcoming = new Date(`${appointment.date}T${appointment.time}`) > now && appointment.status === 'scheduled';
+    const isUpcoming = new Date(appointment.slotStartAt) > now && appointment.status === 'scheduled';
 
     return (
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
         <div className="flex items-start justify-between">
           <div className="flex items-start space-x-4">
             <img
-              src={doctor.avatar}
+              src={doctor.avatarUrl ?? ''}
               alt={doctor.name}
               className="w-16 h-16 rounded-full object-cover"
             />
@@ -89,11 +102,11 @@ export const DashboardPage: FC<DashboardPageProps> = ({ onNavigate }) => {
               <div className="space-y-1 text-sm text-gray-600">
                 <div className="flex items-center">
                   <Calendar className="h-4 w-4 mr-2" />
-                  <span>{formatDate(appointment.date)}</span>
+                  <span>{formatDate(appointment.slotStartAt)}</span>
                 </div>
                 <div className="flex items-center">
                   <Clock className="h-4 w-4 mr-2" />
-                  <span>{formatTime(appointment.time)}</span>
+                  <span>{formatTime(appointment.slotStartAt)}</span>
                 </div>
               </div>
 

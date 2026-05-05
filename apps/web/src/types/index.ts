@@ -1,63 +1,37 @@
-export interface User {
+import type { Appointment, Doctor, Hospital, UserRole } from '@app/shared';
+
+export type { Appointment, Doctor, Hospital, UserRole } from '@app/shared';
+
+export type User = {
   id: string;
   email: string;
   name: string;
-  phone: string;
-  role: 'patient' | 'doctor';
-  avatar?: string;
-}
+  role: UserRole;
+  phone?: string;
+};
 
-export interface Doctor extends User {
-  role: 'doctor';
-  specialty: string;
-  experience: number;
-  rating: number;
-  bio: string;
-  education: string;
-  availableSlots: TimeSlot[];
-  consultationFee: number;
-}
-
-export interface Patient extends User {
-  role: 'patient';
-  dateOfBirth: string;
-  gender: 'male' | 'female' | 'other';
-  address: string;
-}
-
-export interface TimeSlot {
+export type DoctorAvailabilityItem = {
   id: string;
-  date: string;
-  time: string;
-  available: boolean;
-}
-
-export interface Appointment {
-  id: string;
-  patientId: string;
-  doctorId: string;
-  date: string;
-  time: string;
-  status: 'scheduled' | 'completed' | 'cancelled';
-  reason: string;
-  notes?: string;
-  createdAt: string;
-}
+  startAt: string;
+};
 
 export interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<boolean>;
-  register: (userData: Partial<User>) => Promise<boolean>;
-  logout: () => void;
+  register: (userData: { name: string; email: string; phone?: string; password: string }) => Promise<boolean>;
+  logout: () => Promise<void>;
   loading: boolean;
 }
 
 export interface AppointmentContextType {
   appointments: Appointment[];
   doctors: Doctor[];
-  bookAppointment: (appointment: Omit<Appointment, 'id' | 'createdAt'>) => void;
-  cancelAppointment: (appointmentId: string) => void;
-  getAppointmentsByPatient: (patientId: string) => Appointment[];
-  getAppointmentsByDoctor: (doctorId: string) => Appointment[];
-  getDoctorById: (doctorId: string) => Doctor | undefined;
+  hospitals: Hospital[];
+  refreshDoctors: (params?: { query?: string; specialty?: string; hospitalId?: string }) => Promise<void>;
+  refreshHospitals: (params?: { query?: string }) => Promise<void>;
+  refreshMyAppointments: () => Promise<void>;
+  bookAppointment: (params: { doctorId: string; slotStartAt: string; reason: string }) => Promise<boolean>;
+  cancelAppointment: (appointmentId: string) => Promise<boolean>;
+  getDoctorById: (doctorId: string) => Promise<Doctor | null>;
+  getDoctorAvailability: (doctorId: string, from: string, to: string) => Promise<DoctorAvailabilityItem[]>;
 }

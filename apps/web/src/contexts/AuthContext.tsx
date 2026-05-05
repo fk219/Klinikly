@@ -1,31 +1,18 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { User, AuthContextType } from '../types';
+import { isApiError } from '@app/shared';
+import { apiLogin, apiLogout, apiRegister } from '../api/auth';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-const mockUsers: User[] = [
-  {
-    id: 'patient-1',
-    email: 'john.doe@email.com',
-    name: 'John Doe',
-    phone: '+1 (555) 123-0001',
-    role: 'patient'
-  },
-  {
-    id: 'patient-2',
-    email: 'jane.smith@email.com',
-    name: 'Jane Smith',
-    phone: '+1 (555) 123-0002',
-    role: 'patient'
-  }
-];
+const userKey = 'currentUser';
+const tokenKey = 'accessToken';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('currentUser');
+    const storedUser = localStorage.getItem(userKey);
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
@@ -39,46 +26,46 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
       return false;
     }
-    
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const foundUser = mockUsers.find(u => u.email === email);
-    if (foundUser) {
-      setUser(foundUser);
-      localStorage.setItem('currentUser', JSON.stringify(foundUser));
-      setLoading(false);
-      return true;
-    }
-    
-    setLoading(false);
-    return false;
-  };
 
-  const register = async (userData: Partial<User>): Promise<boolean> => {
-    setLoading(true);
-    
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const newUser: User = {
-      id: `patient-${Date.now()}`,
-      email: userData.email!,
-      name: userData.name!,
-      phone: userData.phone!,
-      role: 'patient'
-    };
-    
-    mockUsers.push(newUser);
-    setUser(newUser);
-    localStorage.setItem('currentUser', JSON.stringify(newUser));
+    const res = await apiLogin({ email, password });
+    if (isApiError(res)) {
+      setLoading(false);
+      return false;
+    }
+
+    localStorage.setItem(tokenKey, res.data.accessToken);
+    localStorage.setItem(userKey, JSON.stringify(res.data.user));
+    setUser(res.data.user);
     setLoading(false);
     return true;
   };
 
-  const logout = () => {
+  const register = async (userData: {
+    name: string;
+    email: string;
+    phone?: string;
+    password: string;
+  }): Promise<boolean> => {
+    setLoading(true);
+
+    const res = await apiRegister(userData);
+    if (isApiError(res)) {
+      setLoading(false);
+      return false;
+    }
+
+    localStorage.setItem(tokenKey, res.data.accessToken);
+    localStorage.setItem(userKey, JSON.stringify(res.data.user));
+    setUser(res.data.user);
+    setLoading(false);
+    return true;
+  };
+
+  const logout = async () => {
+    await apiLogout();
     setUser(null);
-    localStorage.removeItem('currentUser');
+    localStorage.removeItem(userKey);
+    localStorage.removeItem(tokenKey);
   };
 
   return (

@@ -59,7 +59,7 @@ export const AuthPage: FC<AuthPageProps> = ({ onNavigate }) => {
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
-        role: 'patient'
+        password: formData.password
       });
       
       if (success) {
