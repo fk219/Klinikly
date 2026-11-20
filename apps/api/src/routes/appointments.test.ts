@@ -35,7 +35,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await mongoose.disconnect();
-  await mongo.stop();
+  if (mongo) await mongo.stop();
 });
 
 beforeEach(async () => {
@@ -50,7 +50,7 @@ beforeEach(async () => {
 });
 
 describe('appointments', () => {
-  it('books a slot atomically and prevents double booking', async () => {
+  it('books a slot atomically under concurrent requests', async () => {
     const { createAccessToken } = await import('../auth/tokens');
 
     const hospital = await HospitalModel.create({ name: 'City Care Hospital', slug: 'city-care', status: 'active' });
@@ -81,19 +81,20 @@ describe('appointments', () => {
 
     const token = createAccessToken({ userId: patient._id.toString(), role: 'patient' });
 
-    const book1 = await request(app)
-      .post('/appointments')
-      .set('Authorization', `Bearer ${token}`)
-      .send({ doctorId: doctor._id.toString(), slotStartAt: startAt.toISOString(), reason: 'Checkup' });
+    const [book1, book2] = await Promise.all([
+      request(app)
+        .post('/appointments')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ doctorId: doctor._id.toString(), slotStartAt: startAt.toISOString(), reason: 'Checkup' }),
+      request(app)
+        .post('/appointments')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ doctorId: doctor._id.toString(), slotStartAt: startAt.toISOString(), reason: 'Checkup' })
+    ]);
 
-    expect(book1.status).toBe(200);
-
-    const book2 = await request(app)
-      .post('/appointments')
-      .set('Authorization', `Bearer ${token}`)
-      .send({ doctorId: doctor._id.toString(), slotStartAt: startAt.toISOString(), reason: 'Checkup' });
-
-    expect(book2.status).toBe(409);
+    const statuses = [book1.status, book2.status].sort((a, b) => a - b);
+    expect(statuses).toEqual([200, 409]);
+    expect(await AppointmentModel.countDocuments({ doctorId: doctor._id, slotStartAt: startAt })).toBe(1);
   });
 
   it('cancels a scheduled appointment and restores slot availability', async () => {

@@ -6,9 +6,13 @@ import { apiGetDoctor, apiGetDoctorAvailability, apiSearchDoctors, apiSearchHosp
 import { useAuth } from './authStore';
 import { AppointmentContext } from './appointmentStore';
 
+const PAGE_SIZE = 12;
+
 export const AppointmentProvider = ({ children }: { children: ReactNode }) => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [doctorsMeta, setDoctorsMeta] = useState({ page: 1, limit: PAGE_SIZE, total: 0 });
+  const [doctorsLoading, setDoctorsLoading] = useState(false);
   const [hospitals, setHospitals] = useState<Hospital[]>([]);
   const { user } = useAuth();
   const userId = user?.id;
@@ -17,19 +21,19 @@ export const AppointmentProvider = ({ children }: { children: ReactNode }) => {
     const run = async () => {
       const [h, d] = await Promise.all([
         apiSearchHospitals({ page: 1, limit: 200 }),
-        apiSearchDoctors({ page: 1, limit: 200 })
+        apiSearchDoctors({ page: 1, limit: PAGE_SIZE })
       ]);
       if (!isApiError(h)) setHospitals(h.data.items);
-      if (!isApiError(d)) setDoctors(d.data.items);
+      if (!isApiError(d)) {
+        setDoctors(d.data.items);
+        setDoctorsMeta({ page: d.data.page, limit: d.data.limit, total: d.data.total });
+      }
     };
     void run();
   }, []);
 
   useEffect(() => {
-    if (!userId) {
-      setAppointments([]);
-      return;
-    }
+    if (!userId) { setAppointments([]); return; }
     const run = async () => {
       const res = await apiMyAppointments();
       if (isApiError(res)) return;
@@ -38,10 +42,15 @@ export const AppointmentProvider = ({ children }: { children: ReactNode }) => {
     void run();
   }, [userId]);
 
-  const refreshDoctors = async (params?: { query?: string; specialty?: string; hospitalId?: string }) => {
-    const res = await apiSearchDoctors({ ...params, page: 1, limit: 200 });
+  const refreshDoctors = async (params?: {
+    query?: string; specialty?: string; hospitalId?: string; page?: number; limit?: number;
+  }) => {
+    setDoctorsLoading(true);
+    const res = await apiSearchDoctors({ ...params, page: params?.page ?? 1, limit: params?.limit ?? PAGE_SIZE });
+    setDoctorsLoading(false);
     if (isApiError(res)) return;
     setDoctors(res.data.items);
+    setDoctorsMeta({ page: res.data.page, limit: res.data.limit, total: res.data.total });
   };
 
   const refreshHospitals = async (params?: { query?: string }) => {
@@ -60,7 +69,6 @@ export const AppointmentProvider = ({ children }: { children: ReactNode }) => {
   const getDoctorById = async (doctorId: string) => {
     const cached = doctors.find((d) => d.id === doctorId);
     if (cached) return cached;
-
     const res = await apiGetDoctor(doctorId);
     if (isApiError(res)) return null;
     return res.data;
@@ -90,6 +98,8 @@ export const AppointmentProvider = ({ children }: { children: ReactNode }) => {
     <AppointmentContext.Provider value={{
       appointments,
       doctors,
+      doctorsMeta,
+      doctorsLoading,
       hospitals,
       refreshDoctors,
       refreshHospitals,

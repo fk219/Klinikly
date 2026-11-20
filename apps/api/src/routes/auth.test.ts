@@ -30,7 +30,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await mongoose.disconnect();
-  await mongo.stop();
+  if (mongo) await mongo.stop();
 });
 
 beforeEach(async () => {
@@ -72,5 +72,25 @@ describe('auth', () => {
     const refreshToken2 = getCookieValue(cookie2, 'refreshToken');
     expect(refreshToken2).toBeTruthy();
     expect(refreshToken2).not.toBe(refreshToken1);
+  });
+
+  it('allows exactly one concurrent refresh for a rotation token', async () => {
+    const reg = await request(app).post('/auth/register').send({
+      email: 'p3@example.com',
+      password: 'Password123!',
+      name: 'Patient Three'
+    });
+
+    const cookie = reg.headers['set-cookie']?.[0] as string;
+    const refreshToken = getCookieValue(cookie, 'refreshToken');
+    expect(refreshToken).toBeTruthy();
+
+    const [first, second] = await Promise.all([
+      request(app).post('/auth/refresh').set('Cookie', [`refreshToken=${refreshToken}`]).send(),
+      request(app).post('/auth/refresh').set('Cookie', [`refreshToken=${refreshToken}`]).send()
+    ]);
+
+    const statuses = [first.status, second.status].sort((a, b) => a - b);
+    expect(statuses).toEqual([200, 401]);
   });
 });

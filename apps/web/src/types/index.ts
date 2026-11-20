@@ -26,8 +26,10 @@ export interface AuthContextType {
 export interface AppointmentContextType {
   appointments: Appointment[];
   doctors: Doctor[];
+  doctorsMeta: { page: number; limit: number; total: number };
   hospitals: Hospital[];
-  refreshDoctors: (params?: { query?: string; specialty?: string; hospitalId?: string }) => Promise<void>;
+  doctorsLoading: boolean;
+  refreshDoctors: (params?: { query?: string; specialty?: string; hospitalId?: string; page?: number; limit?: number }) => Promise<void>;
   refreshHospitals: (params?: { query?: string }) => Promise<void>;
   refreshMyAppointments: () => Promise<void>;
   bookAppointment: (params: { doctorId: string; slotStartAt: string; reason: string }) => Promise<boolean>;

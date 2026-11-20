@@ -10,10 +10,13 @@
   "scripts": {
     "dev:web": "npm --workspace apps/web run dev",
     "dev:api": "npm --workspace apps/api run dev",
+    "dev:admin": "npm --workspace apps/admin run dev",
     "build:web": "npm --workspace apps/web run build",
     "build:api": "npm --workspace apps/api run build",
-    "lint": "npm --workspaces run lint",
-    "typecheck": "npm --workspaces run typecheck",
-    "test": "npm --workspaces run test"
+    "build:admin": "npm --workspace apps/admin run build",
+    "lint": "npm --workspaces run lint --if-present",
+    "typecheck": "npm --workspaces run typecheck --if-present",
+    "test": "npm --workspaces run test --if-present",
+    "seed": "npm --workspace apps/api run seed"
   }
 }

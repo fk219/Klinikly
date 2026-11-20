@@ -15,6 +15,9 @@ export const apiSearchHospitals = async (params?: {
   return apiClient.get(`/hospitals${suffix}`);
 };
 
+export const apiGetHospital = async (id: string): Promise<ApiResponse<Hospital>> =>
+  apiClient.get(`/hospitals/${id}`);
+
 export const apiSearchDoctors = async (params?: {
   query?: string;
   specialty?: string;

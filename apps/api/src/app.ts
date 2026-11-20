@@ -2,16 +2,30 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
+import rateLimit from 'express-rate-limit';
 import { env } from './config';
 import { errorHandler } from './http/middleware/errorHandler';
 import { requestId } from './http/middleware/requestId';
 import { adminAvailabilityRouter } from './routes/adminAvailability';
 import { adminAppointmentsRouter } from './routes/adminAppointments';
+import { adminDoctorsRouter } from './routes/adminDoctors';
 import { appointmentsRouter, meRouter } from './routes/appointments';
 import { authRouter } from './routes/auth';
 import { doctorsRouter } from './routes/doctors';
 import { healthRouter } from './routes/health';
 import { hospitalsRouter } from './routes/hospitals';
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: { code: 'RATE_LIMITED', message: 'Too many requests, please try again later.' } }
+});
+
+const allowedOrigins = env.CORS_ORIGIN?.split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
 export const createApp = () => {
   const app = express();
@@ -19,7 +33,7 @@ export const createApp = () => {
   app.use(helmet());
   app.use(
     cors({
-      origin: env.CORS_ORIGIN ?? true,
+      origin: allowedOrigins?.length ? allowedOrigins : true,
       credentials: true
     })
   );
@@ -27,11 +41,16 @@ export const createApp = () => {
   app.use(cookieParser());
   app.use(requestId());
 
+  // Rate-limit auth endpoints
+  app.use('/auth/login', authLimiter);
+  app.use('/auth/register', authLimiter);
+
   app.use('/auth', authRouter);
   app.use('/hospitals', hospitalsRouter);
   app.use('/doctors', doctorsRouter);
   app.use('/appointments', appointmentsRouter);
   app.use('/me', meRouter);
+  app.use('/admin', adminDoctorsRouter);
   app.use('/admin', adminAvailabilityRouter);
   app.use('/admin', adminAppointmentsRouter);
   app.use('/health', healthRouter);

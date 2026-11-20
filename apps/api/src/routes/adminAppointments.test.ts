@@ -37,7 +37,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await mongoose.disconnect();
-  await mongo.stop();
+  if (mongo) await mongo.stop();
 });
 
 beforeEach(async () => {
@@ -116,6 +116,84 @@ describe('admin appointments', () => {
       .set('Authorization', `Bearer ${adminToken}`)
       .send();
     expect(cancel.status).toBe(409);
+  });
+
+  it('scopes admin reads and writes to the authenticated hospital', async () => {
+    const { createAccessToken } = await import('../auth/tokens');
+
+    const hospitalA = await HospitalModel.create({ name: 'Hospital A', slug: 'hospital-a', status: 'active' });
+    const hospitalB = await HospitalModel.create({ name: 'Hospital B', slug: 'hospital-b', status: 'active' });
+
+    const adminA = await UserModel.create({
+      email: 'admin-a@example.com',
+      passwordHash: 'hash',
+      name: 'Admin A',
+      role: 'hospital_admin'
+    });
+    const adminB = await UserModel.create({
+      email: 'admin-b@example.com',
+      passwordHash: 'hash',
+      name: 'Admin B',
+      role: 'hospital_admin'
+    });
+    await HospitalAdminModel.create({ hospitalId: hospitalA._id, userId: adminA._id });
+    await HospitalAdminModel.create({ hospitalId: hospitalB._id, userId: adminB._id });
+
+    const doctorA = await DoctorModel.create({
+      hospitalId: hospitalA._id,
+      name: 'Doctor A',
+      specialty: 'Cardiology',
+      bio: 'A',
+      consultationFee: 100,
+      rating: 4.8,
+      active: true
+    });
+    const doctorB = await DoctorModel.create({
+      hospitalId: hospitalB._id,
+      name: 'Doctor B',
+      specialty: 'Dermatology',
+      bio: 'B',
+      consultationFee: 120,
+      rating: 4.7,
+      active: true
+    });
+
+    const patient = await UserModel.create({
+      email: 'patient-tenant@example.com',
+      passwordHash: 'hash',
+      name: 'Patient',
+      role: 'patient'
+    });
+    await AppointmentModel.create({
+      hospitalId: hospitalB._id,
+      patientUserId: patient._id,
+      doctorId: doctorB._id,
+      slotStartAt: new Date('2026-05-05T09:00:00.000Z'),
+      reason: 'Other tenant appointment',
+      status: 'scheduled'
+    });
+
+    const tokenA = createAccessToken({ userId: adminA._id.toString(), role: 'hospital_admin' });
+
+    const doctors = await request(app)
+      .get('/admin/doctors')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send();
+    expect(doctors.status).toBe(200);
+    expect(doctors.body.data.items.map((doctor: { id: string }) => doctor.id)).toEqual([doctorA._id.toString()]);
+
+    const patchOther = await request(app)
+      .patch(`/admin/doctors/${doctorB._id.toString()}`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ name: 'Compromised' });
+    expect(patchOther.status).toBe(404);
+
+    const appointments = await request(app)
+      .get('/admin/appointments')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send();
+    expect(appointments.status).toBe(200);
+    expect(appointments.body.data.items).toHaveLength(0);
   });
 });
 

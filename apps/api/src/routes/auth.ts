@@ -28,8 +28,8 @@ const parseDurationToMs = (value: string) => {
 const setRefreshCookie = (res: Response, token: string) => {
   res.cookie(refreshCookieName, token, {
     httpOnly: true,
-    sameSite: 'lax',
-    secure: false,
+    sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
+    secure: env.NODE_ENV === 'production',
     maxAge: parseDurationToMs(env.JWT_REFRESH_TTL)
   });
 };
@@ -128,15 +128,16 @@ authRouter.post('/refresh', async (req, res, next) => {
     if (!token) return next(unauthorized());
 
     const tokenHash = hashRefreshToken(token);
-    const existing = await RefreshTokenModel.findOne({ tokenHash, revokedAt: { $exists: false } });
+    const now = new Date();
+    const existing = await RefreshTokenModel.findOneAndUpdate(
+      { tokenHash, revokedAt: { $exists: false }, expiresAt: { $gt: now } },
+      { $set: { revokedAt: now } },
+      { new: false }
+    );
     if (!existing) return next(unauthorized());
-    if (existing.expiresAt.getTime() <= Date.now()) return next(unauthorized());
 
     const user = await UserModel.findById(existing.userId);
     if (!user) return next(unauthorized());
-
-    existing.revokedAt = new Date();
-    await existing.save();
 
     const newRefreshToken = createRefreshToken();
     await RefreshTokenModel.create({

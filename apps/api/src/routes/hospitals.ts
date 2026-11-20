@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import mongoose from 'mongoose';
 import { HospitalModel } from '../db/models/Hospital';
+import { notFound } from '../http/errors';
 
 export const hospitalsRouter = Router();
 
@@ -32,6 +34,22 @@ hospitalsRouter.get('/', async (req, res, next) => {
         limit,
         total
       }
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+hospitalsRouter.get('/:id', async (req, res, next) => {
+  try {
+    const { id } = z.object({ id: z.string() }).parse(req.params);
+    if (!mongoose.isValidObjectId(id)) return next(notFound());
+
+    const hospital = await HospitalModel.findOne({ _id: id, status: 'active' });
+    if (!hospital) return next(notFound());
+
+    return res.json({
+      data: { id: hospital._id.toString(), name: hospital.name, slug: hospital.slug }
     });
   } catch (err) {
     return next(err);

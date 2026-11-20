@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { AppointmentModel } from '../db/models/Appointment';
 import { AvailabilitySlotModel } from '../db/models/AvailabilitySlot';
 import { DoctorModel } from '../db/models/Doctor';
+import { UserModel } from '../db/models/User';
 import { conflict, notFound } from '../http/errors';
 import { requireAuth, requireRole } from '../http/middleware/auth';
 
@@ -42,6 +43,12 @@ appointmentsRouter.post('/', async (req, res, next) => {
       slotStartAt: startAt,
       reason: input.reason,
       status: 'scheduled'
+    }).catch(async (err) => {
+      await AvailabilitySlotModel.updateOne(
+        { _id: slot._id },
+        { $set: { status: 'available', source: 'override' } }
+      );
+      throw err;
     });
 
     return res.json({
@@ -91,7 +98,27 @@ appointmentsRouter.post('/:appointmentId/cancel', async (req, res, next) => {
 
 export const meRouter = Router();
 
-meRouter.use(requireAuth(), requireRole('patient'));
+meRouter.use(requireAuth());
+
+meRouter.get('/', async (req, res, next) => {
+  try {
+    const user = await UserModel.findById(req.auth!.userId).lean<{ _id: mongoose.Types.ObjectId; email: string; name: string; role: string; phone?: string }>();
+    if (!user) return next(notFound());
+    return res.json({
+      data: {
+        user: {
+          id: user._id.toString(),
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          phone: user.phone ?? null
+        }
+      }
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
 
 meRouter.get('/appointments', async (req, res, next) => {
   try {

@@ -4,13 +4,20 @@ import { HospitalAdminModel } from '../db/models/HospitalAdmin';
 import { UserModel } from '../db/models/User';
 import { DoctorModel } from '../db/models/Doctor';
 import { AvailabilityRuleModel } from '../db/models/AvailabilityRule';
+import { AvailabilitySlotModel } from '../db/models/AvailabilitySlot';
+import { generateSlots } from '../availability/generateSlots';
 
 const slugify = (value: string) =>
-  value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '');
+  value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+// Generate slots for the next 30 days from today
+const getDateRange = () => {
+  const now = new Date();
+  const from = now.toISOString().slice(0, 10);
+  const toDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+  const to = toDate.toISOString().slice(0, 10);
+  return { from, to };
+};
 
 export const seed = async () => {
   const hospitals = [
@@ -52,6 +59,14 @@ export const seed = async () => {
       { upsert: true, new: true }
     );
 
+    const weeklyTemplate = {
+      mon: [{ start: '09:00', end: '17:00' }],
+      tue: [{ start: '09:00', end: '17:00' }],
+      wed: [{ start: '09:00', end: '17:00' }],
+      thu: [{ start: '09:00', end: '17:00' }],
+      fri: [{ start: '09:00', end: '17:00' }]
+    };
+
     const doctors = [
       {
         name: 'Dr. Sarah Johnson',
@@ -61,8 +76,7 @@ export const seed = async () => {
         experience: 15,
         consultationFee: 200,
         rating: 4.9,
-        avatarUrl:
-          'https://images.pexels.com/photos/5215024/pexels-photo-5215024.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&fit=crop'
+        avatarUrl: 'https://images.pexels.com/photos/5215024/pexels-photo-5215024.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&fit=crop'
       },
       {
         name: 'Dr. Michael Chen',
@@ -72,10 +86,11 @@ export const seed = async () => {
         experience: 12,
         consultationFee: 250,
         rating: 4.8,
-        avatarUrl:
-          'https://images.pexels.com/photos/6129967/pexels-photo-6129967.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&fit=crop'
+        avatarUrl: 'https://images.pexels.com/photos/6129967/pexels-photo-6129967.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&fit=crop'
       }
     ];
+
+    const { from, to } = getDateRange();
 
     for (const d of doctors) {
       const doc = await DoctorModel.findOneAndUpdate(
@@ -84,7 +99,7 @@ export const seed = async () => {
         { upsert: true, new: true }
       );
 
-      await AvailabilityRuleModel.findOneAndUpdate(
+      const rule = await AvailabilityRuleModel.findOneAndUpdate(
         { doctorId: doc._id },
         {
           $setOnInsert: {
@@ -92,17 +107,38 @@ export const seed = async () => {
             doctorId: doc._id,
             timezone: 'UTC',
             slotDurationMinutes: 30,
-            weeklyTemplate: {
-              mon: [{ start: '09:00', end: '17:00' }],
-              tue: [{ start: '09:00', end: '17:00' }],
-              wed: [{ start: '09:00', end: '17:00' }],
-              thu: [{ start: '09:00', end: '17:00' }],
-              fri: [{ start: '09:00', end: '17:00' }]
-            }
+            weeklyTemplate
           }
         },
         { upsert: true, new: true }
       );
+
+      // Generate availability slots for the next 30 days
+      const startAts = generateSlots({
+        from,
+        to,
+        slotDurationMinutes: rule.slotDurationMinutes,
+        weeklyTemplate: rule.weeklyTemplate
+      });
+
+      if (startAts.length > 0) {
+        const ops = startAts.map((startAt) => ({
+          updateOne: {
+            filter: { doctorId: doc._id, startAt },
+            update: {
+              $setOnInsert: {
+                hospitalId: hospital._id,
+                doctorId: doc._id,
+                startAt,
+                status: 'available',
+                source: 'generated'
+              }
+            },
+            upsert: true
+          }
+        }));
+        await AvailabilitySlotModel.bulkWrite(ops, { ordered: false });
+      }
     }
 
     results.push({ hospitalSlug: slug, adminEmail, adminPassword });
