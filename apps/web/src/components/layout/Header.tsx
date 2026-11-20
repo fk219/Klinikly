@@ -1,51 +1,46 @@
-import { useState, useEffect, useRef, type FC } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import {
-  User,
-  LogOut,
-  Calendar,
-  Stethoscope,
-  Menu,
-  X,
-} from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { CalendarDays, Clock, LogOut, Menu, User, X } from 'lucide-react';
 import { useAuth } from '../../contexts/authStore';
-import { Button } from '../common/Button';
-import { gsap } from 'gsap';
 
-export const Header: FC = () => {
+const navItems = [
+  { label: 'Doctors', to: '/doctors' },
+  { label: 'How it works', to: '/#how' },
+  { label: 'For hospitals', to: '/#platform' },
+  { label: 'My appointments', to: '/dashboard' },
+];
+
+export const Header = () => {
   const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
-  const headerRef = useRef<HTMLElement>(null);
-  const logoRef = useRef<HTMLDivElement>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDialogElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    setMenuOpen(false);
+  }, [location.pathname, location.hash]);
 
-    if (headerRef.current) {
-      gsap.fromTo(headerRef.current, { y: -24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: 'power2.out' });
-    }
-    if (logoRef.current) {
-      gsap.fromTo(logoRef.current, { opacity: 0 }, { opacity: 1, duration: 0.35, ease: 'power2.out' });
-    }
-  }, []);
-
-  // Close menus on route change
   useEffect(() => {
-    setShowUserMenu(false);
-    setShowMobileMenu(false);
-  }, [location.pathname]);
+    const dialog = menuRef.current;
+    if (!dialog) return undefined;
 
-  const navigation = [
-    { name: 'Home', path: '/' },
-    { name: 'Doctors', path: '/doctors' },
-    { name: 'My Appointments', path: '/dashboard' },
-  ];
+    if (menuOpen) {
+      if (typeof dialog.showModal === 'function') dialog.showModal();
+      else dialog.setAttribute('open', '');
+      document.body.style.overflow = 'hidden';
+      closeButtonRef.current?.focus();
+    } else {
+      if (typeof dialog.close === 'function') dialog.close();
+      else dialog.removeAttribute('open');
+      document.body.style.overflow = '';
+    }
 
-  const isActive = (path: string) =>
-    path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [menuOpen]);
 
   const handleLogout = async () => {
     await logout();
@@ -53,118 +48,145 @@ export const Header: FC = () => {
   };
 
   return (
-    <header
-      ref={headerRef}
-      className="bg-white/95 backdrop-blur-md shadow-lg border-b border-teal-100 sticky top-0 z-50"
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <div ref={logoRef} className="flex-shrink-0 flex items-center">
-            <Link to="/" className="flex items-center">
-              <div className="relative">
-                <Stethoscope className="h-8 w-8 text-teal-600" />
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full animate-pulse"></div>
-              </div>
-              <span className="ml-3 text-xl font-bold bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent">
-                Klinikly
-              </span>
+    <header className="sticky top-0 z-40 border-b border-line bg-canvas">
+      <div className="container-editorial flex h-16 items-center justify-between gap-3 lg:h-20 lg:gap-6">
+        <Link to="/" className="flex min-w-0 items-center gap-3" aria-label="Klinikly home">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center bg-pine text-canvas sm:h-10 sm:w-10">
+            <Clock className="h-4 w-4" aria-hidden="true" />
+          </span>
+          <span className="flex flex-col leading-none">
+            <span className="font-serif text-xl tracking-tight text-ink sm:text-2xl">Klinikly</span>
+            <span className="mt-1 hidden font-mono text-[9px] uppercase tracking-[0.2em] text-muted sm:block">
+              Care, scheduled.
+            </span>
+          </span>
+        </Link>
+
+        <nav aria-label="Primary" className="hidden items-center gap-7 lg:flex">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) =>
+                `link-line font-mono text-[10px] uppercase tracking-[0.16em] transition-colors ${
+                  isActive ? 'text-pine' : 'text-muted hover:text-ink'
+                }`
+              }
+            >
+              {item.label}
+            </NavLink>
+          ))}
+        </nav>
+
+        <div className="flex items-center gap-1 sm:gap-2">
+          {user ? (
+            <div className="hidden items-center gap-4 lg:flex">
+              <Link to="/dashboard" className="flex items-center gap-2 text-sm text-ink">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-sage text-pine">
+                  <User className="h-4 w-4" aria-hidden="true" />
+                </span>
+                <span className="max-w-28 truncate">{user.name}</span>
+              </Link>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-muted transition-colors hover:text-ink"
+              >
+                <LogOut className="h-3.5 w-3.5" aria-hidden="true" />
+                Sign out
+              </button>
+            </div>
+          ) : (
+            <Link to="/auth" className="hidden lg:inline-flex btn btn-outline">
+              Sign in
             </Link>
+          )}
+
+          <Link to="/doctors" className="hidden lg:inline-flex btn btn-primary">
+            Book a doctor
+          </Link>
+
+          <button
+            type="button"
+            onClick={() => setMenuOpen(true)}
+            className="flex h-10 w-10 items-center justify-center text-ink lg:hidden"
+            aria-label="Open menu"
+            aria-expanded={menuOpen}
+            aria-controls="klinikly-menu"
+          >
+            <Menu className="h-5 w-5" aria-hidden="true" />
+          </button>
+        </div>
+      </div>
+
+      <dialog
+        ref={menuRef}
+        id="klinikly-menu"
+        aria-label="Site menu"
+        onClose={() => setMenuOpen(false)}
+        className="m-0 h-full w-full max-w-none border-0 bg-canvas p-0 text-ink backdrop:bg-canvas lg:hidden"
+      >
+        <div className="flex h-full flex-col">
+          <div className="container-editorial flex h-16 items-center justify-between border-b border-line">
+            <span className="flex items-center gap-3">
+              <span className="flex h-9 w-9 items-center justify-center bg-pine text-canvas">
+                <Clock className="h-4 w-4" aria-hidden="true" />
+              </span>
+              <span className="font-serif text-xl tracking-tight">Klinikly</span>
+            </span>
+            <button
+              ref={closeButtonRef}
+              type="button"
+              onClick={() => setMenuOpen(false)}
+              className="flex h-10 w-10 items-center justify-center text-ink"
+              aria-label="Close menu"
+            >
+              <X className="h-5 w-5" aria-hidden="true" />
+            </button>
           </div>
 
-          {/* Desktop Nav */}
-          <nav className="hidden md:flex space-x-1">
-            {navigation.map((item) => (
+          <nav aria-label="Mobile primary" className="container-editorial flex flex-1 flex-col justify-center gap-1 py-8">
+            {navItems.map((item, index) => (
               <Link
-                key={item.path}
-                to={item.path}
-                className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300 ${
-                  isActive(item.path)
-                    ? 'text-teal-600 bg-teal-50 shadow-sm'
-                    : 'text-gray-600 hover:text-teal-600 hover:bg-teal-50'
-                }`}
+                key={item.to}
+                to={item.to}
+                className="flex items-baseline gap-4 border-b border-line py-5 font-serif text-4xl tracking-tight text-ink transition-colors hover:text-coral sm:text-5xl"
               >
-                {item.name}
+                <span className="font-mono text-[10px] tracking-[0.16em] text-muted">
+                  {String(index + 1).padStart(2, '0')}
+                </span>
+                {item.label}
               </Link>
             ))}
           </nav>
 
-          {/* User Actions */}
-          <div className="flex items-center space-x-3">
+          <div className="container-editorial border-t border-line py-6">
             {user ? (
-              <div className="relative">
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-sm text-muted">Signed in as {user.name}</span>
                 <button
-                  onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center space-x-2 text-gray-600 hover:text-teal-600 transition-colors p-2 rounded-full hover:bg-teal-50"
+                  type="button"
+                  onClick={handleLogout}
+                  className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink"
                 >
-                  <div className="w-8 h-8 bg-gradient-to-r from-teal-500 to-emerald-500 rounded-full flex items-center justify-center">
-                    <User className="h-4 w-4 text-white" />
-                  </div>
-                  <span className="hidden sm:block text-sm font-medium">{user.name}</span>
+                  Sign out
                 </button>
-                {showUserMenu && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl py-2 z-50 border border-gray-100">
-                    <div className="px-4 py-3 border-b border-gray-100">
-                      <div className="font-medium text-gray-900">{user.name}</div>
-                      <div className="text-sm text-gray-500">{user.email}</div>
-                    </div>
-                    <Link
-                      to="/dashboard"
-                      className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-teal-50 hover:text-teal-600"
-                    >
-                      <Calendar className="h-4 w-4 mr-3" />
-                      My Appointments
-                    </Link>
-                    <button
-                      onClick={handleLogout}
-                      className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600"
-                    >
-                      <LogOut className="h-4 w-4 mr-3" />
-                      Sign Out
-                    </button>
-                  </div>
-                )}
               </div>
             ) : (
-              <Button onClick={() => navigate('/auth')} size="sm">
-                Sign In
-              </Button>
-            )}
-
-            {/* Hamburger */}
-            <div className="md:hidden">
-              <button
-                onClick={() => setShowMobileMenu(!showMobileMenu)}
-                className="p-2 text-gray-600 hover:text-teal-600 transition-colors rounded-full hover:bg-teal-50"
-                aria-label="Toggle menu"
-              >
-                {showMobileMenu ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Mobile Nav */}
-      {showMobileMenu && (
-        <div className="md:hidden border-t border-gray-200 bg-white/95 backdrop-blur-md">
-          <div className="px-2 pt-2 pb-3 space-y-1">
-            {navigation.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`block w-full text-left px-3 py-2 text-base font-medium rounded-lg transition-colors ${
-                  isActive(item.path)
-                    ? 'text-teal-600 bg-teal-50'
-                    : 'text-gray-600 hover:text-teal-600 hover:bg-teal-50'
-                }`}
-              >
-                {item.name}
+              <Link to="/auth" className="btn btn-primary w-full">
+                Sign in or create an account
               </Link>
-            ))}
+            )}
+            <Link to="/doctors" className="btn btn-outline mt-3 w-full">
+              <CalendarDays className="h-4 w-4" aria-hidden="true" />
+              Book a doctor
+            </Link>
+            <p className="mt-5 font-mono text-[9px] uppercase tracking-[0.14em] text-muted">
+              Portfolio demo · Seeded data
+            </p>
           </div>
         </div>
-      )}
+      </dialog>
     </header>
   );
 };

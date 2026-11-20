@@ -8,8 +8,11 @@ export const AdminLayout: FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-100 flex items-center justify-center">
-        <div className="w-10 h-10 border-4 border-teal-600 border-t-transparent rounded-full animate-spin" />
+      <div className="flex min-h-screen items-center justify-center bg-canvas">
+        <div className="flex items-center gap-3">
+          <span className="h-2 w-2 animate-pulse rounded-full bg-pine" aria-hidden="true" />
+          <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">Opening portal</span>
+        </div>
       </div>
     );
   }
@@ -17,9 +20,9 @@ export const AdminLayout: FC = () => {
   if (!user) return <Navigate to="/login" replace />;
 
   return (
-    <div className="flex min-h-screen bg-slate-100">
+    <div className="flex min-h-screen bg-canvas">
       <Sidebar />
-      <main className="flex-1 overflow-auto">
+      <main className="min-w-0 flex-1 overflow-auto">
         <Outlet />
       </main>
     </div>

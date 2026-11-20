@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { AuthProvider } from './contexts/AuthContext';
 import { AppointmentProvider } from './contexts/AppointmentContext';
@@ -11,6 +11,7 @@ import { DoctorDetailPage } from './components/doctors/DoctorDetailPage';
 import { BookingPage } from './components/booking/BookingPage';
 import { DashboardPage } from './components/dashboard/DashboardPage';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
+import { NotFoundPage } from './components/common/NotFoundPage';
 
 function App() {
   return (
@@ -18,7 +19,7 @@ function App() {
       <AuthProvider>
         <AppointmentProvider>
           <ErrorBoundary>
-            <div className="min-h-screen bg-gray-50 flex flex-col">
+            <div className="flex min-h-screen flex-col bg-canvas">
               <Header />
               <main className="flex-1">
                 <Routes>
@@ -28,12 +29,16 @@ function App() {
                   <Route path="/doctors/:doctorId" element={<DoctorDetailPage />} />
                   <Route path="/booking/:doctorId" element={<BookingPage />} />
                   <Route path="/dashboard" element={<DashboardPage />} />
-                  <Route path="*" element={<Navigate to="/" replace />} />
+                  <Route path="*" element={<NotFoundPage />} />
                 </Routes>
               </main>
               <Footer />
             </div>
-            <Toaster position="top-right" richColors closeButton />
+            <Toaster
+              position="top-right"
+              closeButton
+              toastOptions={{ style: { borderRadius: 0, fontFamily: '"Public Sans", system-ui, sans-serif' } }}
+            />
           </ErrorBoundary>
         </AppointmentProvider>
       </AuthProvider>

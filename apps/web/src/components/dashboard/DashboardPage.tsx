@@ -1,12 +1,37 @@
 import { useEffect, useMemo, useState, type FC } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Clock, User, Phone, Mail, Plus, X, AlertCircle } from 'lucide-react';
+import { AlertCircle, ArrowUpRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/authStore';
 import { useAppointments } from '../../contexts/appointmentStore';
-import { Button } from '../common/Button';
 import { Appointment, Doctor } from '../../types';
-import { doctorInitial } from '../../utils/doctorInitial';
+
+const formatDateParts = (value: string) => {
+  const date = new Date(value);
+  return {
+    weekday: date.toLocaleDateString('en-US', { weekday: 'short' }),
+    day: date.toLocaleDateString('en-US', { day: '2-digit' }),
+    month: date.toLocaleDateString('en-US', { month: 'short' }),
+    full: date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }),
+    time: date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+  };
+};
+
+const StatusLabel: FC<{ status: Appointment['status'] }> = ({ status }) => (
+  <span
+    className={`inline-flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.14em] ${
+      status === 'scheduled' ? 'text-pine' : status === 'cancelled' ? 'text-coral' : 'text-muted'
+    }`}
+  >
+    <span
+      className={`h-1.5 w-1.5 rounded-full ${
+        status === 'scheduled' ? 'bg-pine' : status === 'cancelled' ? 'bg-coral' : 'bg-muted'
+      }`}
+      aria-hidden="true"
+    />
+    {status}
+  </span>
+);
 
 export const DashboardPage: FC = () => {
   const navigate = useNavigate();
@@ -14,6 +39,8 @@ export const DashboardPage: FC = () => {
   const { appointments, getDoctorById, cancelAppointment, refreshMyAppointments } = useAppointments();
   const [activeTab, setActiveTab] = useState<'upcoming' | 'past'>('upcoming');
   const [doctorMap, setDoctorMap] = useState<Record<string, Doctor | 'loading' | 'error'>>({});
+  const [pendingCancelId, setPendingCancelId] = useState<string | null>(null);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
   const userId = user?.id;
 
   useEffect(() => {
@@ -23,21 +50,20 @@ export const DashboardPage: FC = () => {
 
   useEffect(() => {
     const run = async () => {
-      const ids = Array.from(new Set(appointments.map((a) => a.doctorId)));
+      const ids = Array.from(new Set(appointments.map((appointment) => appointment.doctorId)));
       const missing = ids.filter((id) => !doctorMap[id]);
       if (!missing.length) return;
 
-      // Mark as loading first
-      setDoctorMap(prev => {
-        const next = { ...prev };
+      setDoctorMap((previous) => {
+        const next = { ...previous };
         for (const id of missing) next[id] = 'loading';
         return next;
       });
 
       const pairs = await Promise.all(missing.map(async (id) => [id, await getDoctorById(id)] as const));
-      setDoctorMap(prev => {
-        const next = { ...prev };
-        for (const [id, doc] of pairs) next[id] = doc ?? 'error';
+      setDoctorMap((previous) => {
+        const next = { ...previous };
+        for (const [id, doctor] of pairs) next[id] = doctor ?? 'error';
         return next;
       });
     };
@@ -48,67 +74,87 @@ export const DashboardPage: FC = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Please sign in to view your dashboard</h2>
-          <Button onClick={() => navigate('/auth')}>Sign In</Button>
+      <div className="container-editorial flex min-h-[60vh] items-center py-20">
+        <div>
+          <p className="eyebrow">Patient dashboard</p>
+          <h1 className="mt-4 max-w-[16ch] font-serif text-[clamp(2.8rem,5vw,4.6rem)] leading-[0.92] tracking-[-0.03em] text-ink">
+            Your appointments live here.
+          </h1>
+          <p className="mt-4 max-w-md text-base leading-relaxed text-muted">
+            Sign in to see upcoming visits, past appointments, and cancellation options.
+          </p>
+          <button type="button" onClick={() => navigate('/auth')} className="btn btn-primary mt-6">
+            Sign in
+          </button>
         </div>
       </div>
     );
   }
 
   const upcomingAppointments = appointments
-    .filter((apt) => new Date(apt.slotStartAt) > now && apt.status === 'scheduled')
+    .filter((appointment) => new Date(appointment.slotStartAt) > now && appointment.status === 'scheduled')
     .sort((a, b) => new Date(a.slotStartAt).getTime() - new Date(b.slotStartAt).getTime());
 
   const pastAppointments = appointments
-    .filter((apt) => new Date(apt.slotStartAt) <= now || apt.status === 'completed' || apt.status === 'cancelled')
+    .filter(
+      (appointment) =>
+        new Date(appointment.slotStartAt) <= now ||
+        appointment.status === 'completed' ||
+        appointment.status === 'cancelled'
+    )
     .sort((a, b) => new Date(b.slotStartAt).getTime() - new Date(a.slotStartAt).getTime());
 
-  const formatDate = (dateString: string) =>
-    new Date(dateString).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-
-  const formatTime = (dateTimeString: string) =>
-    new Date(dateTimeString).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  const visibleAppointments = activeTab === 'upcoming' ? upcomingAppointments : pastAppointments;
+  const uniqueDoctors = new Set(appointments.map((appointment) => appointment.doctorId)).size;
 
   const handleCancelAppointment = async (appointmentId: string) => {
-    const confirmed = window.confirm('Are you sure you want to cancel this appointment?');
-    if (!confirmed) return;
+    setCancellingId(appointmentId);
     const ok = await cancelAppointment(appointmentId);
+    setCancellingId(null);
+    setPendingCancelId(null);
     if (ok) {
-      toast.success('Appointment cancelled successfully');
+      toast.success('Appointment cancelled. The slot is open again.');
     } else {
-      toast.error('Failed to cancel appointment');
+      toast.error('Could not cancel this appointment');
     }
   };
 
-  const AppointmentCard = ({ appointment }: { appointment: Appointment }) => {
+  const AppointmentRow: FC<{ appointment: Appointment }> = ({ appointment }) => {
     const doctorEntry = doctorMap[appointment.doctorId];
     const isUpcoming = new Date(appointment.slotStartAt) > now && appointment.status === 'scheduled';
+    const date = formatDateParts(appointment.slotStartAt);
 
     if (doctorEntry === 'loading') {
       return (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 animate-pulse">
-          <div className="flex items-start space-x-4">
-            <div className="w-16 h-16 rounded-full bg-gray-200"></div>
-            <div className="flex-1 space-y-2">
-              <div className="h-4 bg-gray-200 rounded w-1/3"></div>
-              <div className="h-3 bg-gray-200 rounded w-1/4"></div>
-              <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-            </div>
+        <div className="grid animate-pulse gap-4 border-b border-line py-6 sm:grid-cols-[5rem_1fr_auto] sm:items-center" aria-hidden="true">
+          <div className="h-16 w-16 bg-stone" />
+          <div className="space-y-2">
+            <div className="h-4 w-1/3 bg-stone" />
+            <div className="h-3 w-1/2 bg-stone" />
           </div>
+          <div className="h-4 w-20 bg-stone" />
         </div>
       );
     }
 
     if (!doctorEntry || doctorEntry === 'error') {
       return (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center text-gray-500">
-            <AlertCircle className="h-5 w-5 mr-2 text-amber-500" />
-            <span className="text-sm">Doctor details unavailable</span>
-            <span className="ml-auto text-xs text-gray-400">{formatDate(appointment.slotStartAt)}</span>
+        <div className="grid gap-4 border-b border-line py-6 sm:grid-cols-[5rem_1fr_auto] sm:items-center">
+          <div className="flex flex-col items-center justify-center border border-line bg-white px-2 py-2">
+            <span className="font-mono text-[8px] uppercase tracking-[0.12em] text-muted">{date.weekday}</span>
+            <span className="font-serif text-2xl leading-none text-ink">{date.day}</span>
+            <span className="font-mono text-[8px] uppercase tracking-[0.12em] text-muted">{date.month}</span>
           </div>
+          <div>
+            <p className="flex items-center gap-2 text-sm text-ink">
+              <AlertCircle className="h-4 w-4 text-coral" aria-hidden="true" />
+              Doctor details unavailable
+            </p>
+            <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-muted">
+              {date.full} · {date.time}
+            </p>
+          </div>
+          <StatusLabel status={appointment.status} />
         </div>
       );
     }
@@ -116,147 +162,191 @@ export const DashboardPage: FC = () => {
     const doctor = doctorEntry;
 
     return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-        <div className="flex items-start justify-between">
-          <div className="flex items-start space-x-4">
-            {doctor.avatarUrl ? (
-              <img src={doctor.avatarUrl} alt={doctor.name} className="w-16 h-16 rounded-full object-cover" />
-            ) : (
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-teal-100 to-emerald-100 flex items-center justify-center">
-                <span className="text-xl font-bold text-teal-400">{doctorInitial(doctor.name)}</span>
-              </div>
-            )}
-            <div className="flex-1">
-              <h3 className="text-lg font-semibold text-gray-900">{doctor.name}</h3>
-              <p className="text-teal-600 font-medium mb-2">{doctor.specialty}</p>
-              <div className="space-y-1 text-sm text-gray-600">
-                <div className="flex items-center"><Calendar className="h-4 w-4 mr-2" /><span>{formatDate(appointment.slotStartAt)}</span></div>
-                <div className="flex items-center"><Clock className="h-4 w-4 mr-2" /><span>{formatTime(appointment.slotStartAt)}</span></div>
-              </div>
-              <div className="mt-3">
-                <p className="text-sm text-gray-600"><span className="font-medium">Reason:</span> {appointment.reason}</p>
+      <div className="grid gap-4 border-b border-line py-6 sm:grid-cols-[5rem_1fr_auto] sm:items-center">
+        <div className="flex w-16 flex-col items-center justify-center border border-line bg-white px-2 py-2">
+          <span className="font-mono text-[8px] uppercase tracking-[0.12em] text-muted">{date.weekday}</span>
+          <span className="font-serif text-2xl leading-none text-ink">{date.day}</span>
+          <span className="font-mono text-[8px] uppercase tracking-[0.12em] text-muted">{date.month}</span>
+        </div>
+
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <button
+              type="button"
+              onClick={() => navigate(`/doctors/${doctor.id}`)}
+              className="font-serif text-2xl leading-tight text-ink transition-colors hover:text-pine"
+            >
+              {doctor.name}
+            </button>
+            <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-coral">{doctor.specialty}</span>
+          </div>
+          <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-muted">
+            {date.time} · {date.full}
+          </p>
+          <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted">
+            <span className="text-ink">Reason:</span> {appointment.reason}
+          </p>
+
+          {pendingCancelId === appointment.id && (
+            <div className="mt-3 border border-coral/30 bg-[#F7ECE6] p-3">
+              <p className="text-sm text-ink">Cancel this appointment and release the slot?</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => void handleCancelAppointment(appointment.id)}
+                  disabled={cancellingId === appointment.id}
+                  className="inline-flex min-h-9 items-center bg-coral px-3 font-mono text-[9px] uppercase tracking-[0.14em] text-canvas transition-colors hover:bg-ink disabled:opacity-50"
+                >
+                  {cancellingId === appointment.id ? 'Cancelling…' : 'Yes, cancel'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPendingCancelId(null)}
+                  className="inline-flex min-h-9 items-center border border-line bg-white px-3 font-mono text-[9px] uppercase tracking-[0.14em] text-ink transition-colors hover:border-ink"
+                >
+                  Keep it
+                </button>
               </div>
             </div>
-          </div>
-          <div className="flex flex-col items-end space-y-2">
-            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-              appointment.status === 'scheduled' ? 'bg-green-100 text-green-800'
-              : appointment.status === 'cancelled' ? 'bg-red-100 text-red-800'
-              : 'bg-gray-100 text-gray-800'
-            }`}>
-              {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
-            </span>
-            {isUpcoming && (
-              <button onClick={() => handleCancelAppointment(appointment.id)}
-                className="text-red-600 hover:text-red-700 transition-colors" title="Cancel appointment">
-                <X className="h-5 w-5" />
-              </button>
-            )}
-          </div>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between gap-4 sm:flex-col sm:items-end">
+          <StatusLabel status={appointment.status} />
+          {isUpcoming && pendingCancelId !== appointment.id && (
+            <button
+              type="button"
+              onClick={() => setPendingCancelId(appointment.id)}
+              className="font-mono text-[9px] uppercase tracking-[0.14em] text-muted transition-colors hover:text-coral"
+            >
+              Cancel
+            </button>
+          )}
         </div>
       </div>
     );
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">My Dashboard</h1>
-          <p className="text-gray-600">Manage your appointments and health records</p>
+    <div className="bg-canvas">
+      <section className="container-editorial pb-16 pt-12 lg:pb-24 lg:pt-16">
+        <div className="flex flex-col justify-between gap-8 border-b border-line pb-9 lg:flex-row lg:items-end">
+          <div>
+            <p className="eyebrow">Patient dashboard</p>
+            <h1 className="mt-4 max-w-[16ch] font-serif text-[clamp(3rem,5.5vw,5.2rem)] leading-[0.9] tracking-[-0.04em] text-ink">
+              Visits, <span className="italic text-coral">accounted for.</span>
+            </h1>
+            <p className="mt-4 max-w-md text-base leading-relaxed text-muted">
+              Signed in as {user.name}. Cancel a visit and the time returns to the hospital schedule.
+            </p>
+          </div>
+          <button type="button" onClick={() => navigate('/doctors')} className="btn btn-primary">
+            Book a doctor
+            <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+          </button>
         </div>
 
-        <div className="grid lg:grid-cols-4 gap-8">
-          {/* Profile Sidebar */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 sticky top-8">
-              <div className="text-center mb-6">
-                <div className="w-20 h-20 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <User className="h-10 w-10 text-teal-600" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900">{user.name}</h3>
-                <p className="text-gray-600 capitalize">{user.role.replace('_', ' ')}</p>
-              </div>
-              <div className="space-y-4 text-sm">
-                <div className="flex items-center"><Mail className="h-4 w-4 text-gray-400 mr-3" /><span className="text-gray-600 truncate">{user.email}</span></div>
-                {user.phone && <div className="flex items-center"><Phone className="h-4 w-4 text-gray-400 mr-3" /><span className="text-gray-600">{user.phone}</span></div>}
-              </div>
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <Button onClick={() => navigate('/doctors')} className="w-full" variant="outline">
-                  <Plus className="h-4 w-4 mr-2" /> Book New Appointment
-                </Button>
-              </div>
+        <dl className="grid border-b border-line sm:grid-cols-3">
+          {[
+            { label: 'Upcoming', value: upcomingAppointments.length },
+            { label: 'Total booked', value: appointments.length },
+            { label: 'Specialists seen', value: uniqueDoctors },
+          ].map((stat) => (
+            <div key={stat.label} className="border-b border-line py-6 sm:border-b-0 sm:border-r sm:px-6 sm:last:border-r-0 sm:first:pl-0">
+              <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">{stat.label}</dt>
+              <dd className="mt-2 font-serif text-4xl tabular-nums text-ink">{stat.value}</dd>
             </div>
-          </div>
+          ))}
+        </dl>
 
-          {/* Main Content */}
-          <div className="lg:col-span-3">
-            {/* Stats */}
-            <div className="grid md:grid-cols-3 gap-6 mb-8">
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <div className="flex items-center">
-                  <div className="bg-blue-100 p-3 rounded-lg"><Calendar className="h-6 w-6 text-blue-600" /></div>
-                  <div className="ml-4"><p className="text-sm font-medium text-gray-600">Upcoming</p><p className="text-2xl font-bold text-gray-900">{upcomingAppointments.length}</p></div>
+        <div className="mt-10 grid gap-10 lg:grid-cols-12 lg:gap-14">
+          <aside className="lg:col-span-3">
+            <div className="border border-line bg-white">
+              <div className="flex items-center gap-3 border-b border-line p-5">
+                <span className="flex h-12 w-12 items-center justify-center bg-ink font-serif text-xl text-canvas">
+                  {user.name.slice(0, 1).toUpperCase()}
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate font-serif text-xl text-ink">{user.name}</p>
+                  <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-muted">
+                    {user.role.replace('_', ' ')}
+                  </p>
                 </div>
               </div>
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <div className="flex items-center">
-                  <div className="bg-green-100 p-3 rounded-lg"><Clock className="h-6 w-6 text-green-600" /></div>
-                  <div className="ml-4"><p className="text-sm font-medium text-gray-600">Total</p><p className="text-2xl font-bold text-gray-900">{appointments.length}</p></div>
+              <dl className="space-y-3 p-5 text-sm">
+                <div>
+                  <dt className="font-mono text-[9px] uppercase tracking-[0.12em] text-muted">Email</dt>
+                  <dd className="mt-1 break-all text-ink">{user.email}</dd>
                 </div>
-              </div>
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <div className="flex items-center">
-                  <div className="bg-teal-100 p-3 rounded-lg"><User className="h-6 w-6 text-teal-600" /></div>
-                  <div className="ml-4"><p className="text-sm font-medium text-gray-600">Doctors Visited</p><p className="text-2xl font-bold text-gray-900">{new Set(appointments.map(a => a.doctorId)).size}</p></div>
-                </div>
-              </div>
+                {user.phone ? (
+                  <div>
+                    <dt className="font-mono text-[9px] uppercase tracking-[0.12em] text-muted">Phone</dt>
+                    <dd className="mt-1 text-ink">{user.phone}</dd>
+                  </div>
+                ) : null}
+              </dl>
+              <p className="border-t border-line p-5 font-mono text-[9px] uppercase leading-relaxed tracking-[0.12em] text-muted">
+                Demo account · Seeded hospitals
+              </p>
             </div>
+          </aside>
 
-            {/* Appointments */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-              <div className="border-b border-gray-200">
-                <nav className="flex space-x-8 px-6">
-                  {(['upcoming', 'past'] as const).map(tab => (
-                    <button key={tab} onClick={() => setActiveTab(tab)}
-                      className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === tab ? 'border-teal-500 text-teal-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
-                      {tab === 'upcoming' ? `Upcoming (${upcomingAppointments.length})` : `Past (${pastAppointments.length})`}
+          <div className="lg:col-span-8 lg:col-start-5">
+            <div className="flex items-end justify-between gap-4 border-b border-line">
+              <div className="flex gap-6">
+                {(['upcoming', 'past'] as const).map((tab) => {
+                  const count = tab === 'upcoming' ? upcomingAppointments.length : pastAppointments.length;
+                  return (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => setActiveTab(tab)}
+                      aria-pressed={activeTab === tab}
+                      className={`-mb-px border-b-2 pb-3 font-mono text-[10px] uppercase tracking-[0.14em] transition-colors ${
+                        activeTab === tab
+                          ? 'border-pine text-pine'
+                          : 'border-transparent text-muted hover:text-ink'
+                      }`}
+                    >
+                      {tab === 'upcoming' ? 'Upcoming' : 'Past'} <span className="tabular-nums">({count})</span>
                     </button>
-                  ))}
-                </nav>
+                  );
+                })}
               </div>
-              <div className="p-6">
-                {activeTab === 'upcoming' ? (
-                  <div className="space-y-4">
-                    {upcomingAppointments.length > 0 ? (
-                      upcomingAppointments.map(a => <AppointmentCard key={a.id} appointment={a} />)
-                    ) : (
-                      <div className="text-center py-12">
-                        <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">No upcoming appointments</h3>
-                        <p className="text-gray-600 mb-4">Book an appointment with one of our qualified doctors.</p>
-                        <Button onClick={() => navigate('/doctors')}>Book Appointment</Button>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {pastAppointments.length > 0 ? (
-                      pastAppointments.map(a => <AppointmentCard key={a.id} appointment={a} />)
-                    ) : (
-                      <div className="text-center py-12">
-                        <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">No past appointments</h3>
-                        <p className="text-gray-600">Your appointment history will appear here.</p>
-                      </div>
-                    )}
-                  </div>
+              <button type="button" onClick={() => navigate('/doctors')} className="hidden pb-3 font-mono text-[10px] uppercase tracking-[0.14em] text-muted transition-colors hover:text-ink sm:block">
+                New booking
+              </button>
+            </div>
+
+            {visibleAppointments.length > 0 ? (
+              <div className="mt-2">
+                {visibleAppointments.map((appointment) => (
+                  <AppointmentRow key={appointment.id} appointment={appointment} />
+                ))}
+              </div>
+            ) : (
+              <div className="border-b border-line py-16 text-center">
+                <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-coral">
+                  {activeTab === 'upcoming' ? 'Nothing booked' : 'No history yet'}
+                </p>
+                <h2 className="mt-4 font-serif text-3xl text-ink">
+                  {activeTab === 'upcoming' ? 'No upcoming appointments.' : 'No past appointments.'}
+                </h2>
+                <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-muted">
+                  {activeTab === 'upcoming'
+                    ? 'Pick a specialist and claim a slot from the live schedule.'
+                    : 'Completed and cancelled visits will appear here.'}
+                </p>
+                {activeTab === 'upcoming' && (
+                  <button type="button" onClick={() => navigate('/doctors')} className="btn btn-primary mt-6">
+                    Find a doctor
+                  </button>
                 )}
               </div>
-            </div>
+            )}
           </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 };

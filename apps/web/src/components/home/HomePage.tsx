@@ -1,197 +1,213 @@
-import { useEffect, useRef, useState, type FC } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { isApiError } from '@app/shared';
-import {
-  ArrowRight,
-  Building2,
-  CalendarCheck,
-  History,
-  ShieldCheck,
-  Stethoscope,
-} from 'lucide-react';
-import { Button } from '../common/Button';
-import { useAuth } from '../../contexts/authStore';
-import { useAppointments } from '../../contexts/appointmentStore';
-import { apiSearchDoctors } from '../../api/search';
-import { gsap } from 'gsap';
+import { useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import NextAvailable from './NextAvailable';
 
-export const HomePage: FC = () => {
-  const { user } = useAuth();
-  const { hospitals } = useAppointments();
-  const [doctorCount, setDoctorCount] = useState<number | null>(null);
-  const navigate = useNavigate();
-  const heroRef = useRef<HTMLDivElement>(null);
+const specialties = [
+  { name: 'Cardiology', note: 'Heart and vascular care' },
+  { name: 'Neurology', note: 'Brain and nervous system' },
+  { name: 'Dermatology', note: 'Skin, hair, and nails' },
+  { name: 'Orthopedics', note: 'Bones, joints, and mobility' },
+];
 
-  useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    if (!heroRef.current) return;
+const steps = [
+  {
+    title: 'Find a specialist',
+    body: 'Search by name or specialty. Every doctor profile lists their hospital and consultation fee.',
+  },
+  {
+    title: 'Pick a real slot',
+    body: 'The calendar reads generated availability from the hospital schedule, not a request form.',
+  },
+  {
+    title: 'Keep the appointment',
+    body: 'The slot is claimed atomically. Cancel it and the time returns to the schedule.',
+  },
+];
 
-    const tl = gsap.timeline();
-    tl.fromTo('.hero-title', { y: 100, opacity: 0 }, { y: 0, opacity: 1, duration: 1, ease: 'power3.out' })
-      .fromTo('.hero-subtitle', { y: 50, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, ease: 'power3.out' }, '-=0.5')
-      .fromTo('.hero-buttons', { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: 'power3.out' }, '-=0.3');
-  }, []);
+export const HomePage = () => {
+  const { hash } = useLocation();
 
   useEffect(() => {
-    let active = true;
+    if (hash !== '#how') return undefined;
 
-    void apiSearchDoctors({ page: 1, limit: 1 }).then((res) => {
-      if (!active || isApiError(res)) return;
-      setDoctorCount(res.data.total);
+    const frame = window.requestAnimationFrame(() => {
+      const target = document.getElementById('how');
+      if (!target) return;
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      target.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
     });
 
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  const features = [
-    {
-      icon: CalendarCheck,
-      title: 'Real availability',
-      description: 'Every slot is generated from a doctor schedule, so the times you see can actually be booked.',
-    },
-    {
-      icon: ShieldCheck,
-      title: 'One booking per slot',
-      description: 'A slot is claimed atomically. Two patients cannot reserve the same appointment.',
-    },
-    {
-      icon: History,
-      title: 'Your appointment history',
-      description: 'See upcoming and past visits in one dashboard, and cancel while a visit is still scheduled.',
-    },
-    {
-      icon: Building2,
-      title: 'Hospital-scoped admin',
-      description: 'Each hospital manages only its own doctors, availability rules, and appointments.',
-    },
-  ];
-
-  const hospitalCount = hospitals.length > 0 ? hospitals.length : '...';
-  const shownDoctorCount = doctorCount ?? '...';
+    return () => window.cancelAnimationFrame(frame);
+  }, [hash]);
 
   return (
-    <div className="min-h-screen bg-white">
-      <div ref={heroRef} className="relative overflow-hidden bg-gradient-to-br from-teal-700 via-teal-600 to-emerald-600">
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-          <div className="max-w-4xl">
-            <h1 className="hero-title text-4xl md:text-6xl font-bold text-white mb-6 leading-tight">
-              Book the right doctor,
-              <span className="block text-emerald-200">at a time that actually exists.</span>
+    <div className="bg-canvas">
+      <section className="container-editorial pb-16 pt-10 lg:pb-24 lg:pt-16" aria-labelledby="home-title">
+        <div className="grid items-start gap-10 lg:grid-cols-12 lg:gap-14">
+          <div className="lg:col-span-7 lg:pt-4">
+            <p className="eyebrow">Appointments / Multi-tenant care</p>
+
+            <h1
+              id="home-title"
+              className="mt-6 max-w-[10ch] font-serif text-[clamp(3.8rem,9vw,8rem)] leading-[0.86] tracking-[-0.045em] text-ink"
+            >
+              Care,
+              <span className="block italic text-coral">scheduled.</span>
             </h1>
-            <p className="hero-subtitle text-xl md:text-2xl text-teal-50 mb-8 max-w-3xl leading-relaxed">
-              Search seeded hospitals, compare specialists, and reserve a slot from real schedules.
+
+            <p className="mt-8 max-w-xl text-base leading-relaxed text-muted sm:text-lg">
+              Compare specialists, see real availability from hospital schedules, and claim a slot that
+              actually exists.
             </p>
-            <div className="hero-buttons flex flex-col sm:flex-row gap-4">
-              {user ? (
-                <>
-                  <Button size="lg" onClick={() => navigate('/doctors')} className="bg-white text-teal-700 hover:bg-gray-50">
-                    <CalendarCheck className="mr-2 h-5 w-5" /> Find a doctor <ArrowRight className="ml-2 h-5 w-5" />
-                  </Button>
-                  <Button size="lg" variant="outline" onClick={() => navigate('/dashboard')} className="border-white text-white hover:bg-white hover:text-teal-700">
-                    My appointments
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button size="lg" onClick={() => navigate('/auth')} className="bg-white text-teal-700 hover:bg-gray-50">
-                    <CalendarCheck className="mr-2 h-5 w-5" /> Create a patient account <ArrowRight className="ml-2 h-5 w-5" />
-                  </Button>
-                  <Button size="lg" variant="outline" onClick={() => navigate('/doctors')} className="border-white text-white hover:bg-white hover:text-teal-700">
-                    Browse doctors
-                  </Button>
-                </>
-              )}
+
+            <div className="mt-9 flex flex-wrap gap-3">
+              <Link to="/doctors" className="btn btn-primary">
+                Find a doctor
+              </Link>
+              <a href="#how" className="btn btn-outline">
+                How booking works
+              </a>
+            </div>
+
+            <div className="mt-12 grid gap-5 border-t border-line pt-6 sm:grid-cols-3">
+              {[
+                ['Real slots', 'Generated from hospital schedules.'],
+                ['One booking', 'A slot can only be claimed once.'],
+                ['Scoped admin', 'Each hospital manages its own data.'],
+              ].map(([title, body]) => (
+                <div key={title}>
+                  <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-pine">{title}</p>
+                  <p className="mt-2 text-sm leading-relaxed text-muted">{body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="lg:col-span-5">
+            <NextAvailable />
+          </div>
+        </div>
+      </section>
+
+      <section id="how" className="scroll-mt-24 border-y border-line bg-stone/60 py-20 lg:py-24" aria-labelledby="how-title">
+        <div className="container-editorial grid gap-10 lg:grid-cols-12 lg:gap-16">
+          <div className="lg:col-span-4">
+            <p className="eyebrow">The booking rail</p>
+            <h2 id="how-title" className="mt-4 max-w-[12ch] font-serif text-[clamp(2.6rem,4.4vw,4.5rem)] leading-[0.95] tracking-[-0.03em] text-ink">
+              Three steps, one honest calendar.
+            </h2>
+            <p className="mt-5 max-w-sm text-base leading-relaxed text-muted">
+              No callback queue. No “we will confirm your request.” The time you choose is the time that is
+              held.
+            </p>
+          </div>
+
+          <ol className="lg:col-span-7 lg:col-start-6">
+            {steps.map((step, index) => (
+              <li key={step.title} className="grid grid-cols-[2.5rem_1fr] gap-4 border-t border-line py-6 last:border-b">
+                <span className="font-mono text-[10px] tracking-[0.14em] text-coral">
+                  {String(index + 1).padStart(2, '0')}
+                </span>
+                <div>
+                  <h3 className="font-serif text-2xl text-ink">{step.title}</h3>
+                  <p className="mt-2 max-w-lg text-sm leading-relaxed text-muted">{step.body}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      <section className="container-editorial py-20 lg:py-24" aria-labelledby="specialties-title">
+        <div className="flex flex-col justify-between gap-6 border-b border-line pb-7 sm:flex-row sm:items-end">
+          <div>
+            <p className="eyebrow">Specialties</p>
+            <h2 id="specialties-title" className="mt-4 max-w-[14ch] font-serif text-[clamp(2.6rem,4.5vw,4.6rem)] leading-[0.95] tracking-[-0.03em] text-ink">
+              Start with the right specialist.
+            </h2>
+          </div>
+          <Link to="/doctors" className="link-line font-mono text-[10px] uppercase tracking-[0.16em] text-pine">
+            View all doctors
+          </Link>
+        </div>
+
+        <div className="mt-8 grid border-t border-line sm:grid-cols-2 lg:grid-cols-4">
+          {specialties.map((specialty, index) => (
+            <Link
+              key={specialty.name}
+              to={`/doctors?specialty=${encodeURIComponent(specialty.name)}`}
+              className="group border-b border-line py-6 pr-4 transition-colors hover:bg-sage/40 sm:px-4 lg:border-b-0 lg:border-r lg:last:border-r-0"
+            >
+              <span className="font-mono text-[10px] tracking-[0.14em] text-muted">
+                {String(index + 1).padStart(2, '0')}
+              </span>
+              <p className="mt-4 font-serif text-3xl text-ink transition-colors group-hover:text-pine">
+                {specialty.name}
+              </p>
+              <p className="mt-2 text-sm text-muted">{specialty.note}</p>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section id="platform" className="scroll-mt-24 bg-ink py-20 text-canvas lg:py-24" aria-labelledby="platform-title">
+        <div className="container-editorial grid gap-12 lg:grid-cols-12">
+          <div className="lg:col-span-5">
+            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-canvas/50">For hospitals</p>
+            <h2 id="platform-title" className="mt-4 max-w-[12ch] font-serif text-[clamp(2.8rem,5vw,5rem)] leading-[0.92] tracking-[-0.04em]">
+              Two sides of one appointment.
+            </h2>
+            <p className="mt-6 max-w-md text-base leading-relaxed text-canvas/65">
+              The patient app and the hospital portal share the same schedule model. That is what makes the
+              booking real.
+            </p>
+          </div>
+
+          <div className="grid gap-8 lg:col-span-6 lg:col-start-7 sm:grid-cols-2">
+            <div className="border-t border-canvas/15 pt-5">
+              <h3 className="font-serif text-2xl">Patient app</h3>
+              <ul className="mt-4 space-y-2 text-sm leading-relaxed text-canvas/65">
+                <li>Search by specialty</li>
+                <li>See live availability</li>
+                <li>Book and cancel appointments</li>
+              </ul>
+            </div>
+            <div className="border-t border-canvas/15 pt-5">
+              <h3 className="font-serif text-2xl">Hospital portal</h3>
+              <ul className="mt-4 space-y-2 text-sm leading-relaxed text-canvas/65">
+                <li>Doctor and profile management</li>
+                <li>Weekly schedule templates</li>
+                <li>Slot generation and blocking</li>
+              </ul>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div className="border-y border-gray-200 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-gray-600">
-          <span className="flex items-center gap-2"><Building2 className="h-4 w-4 text-teal-600" /> {hospitalCount} hospitals</span>
-          <span className="flex items-center gap-2"><Stethoscope className="h-4 w-4 text-teal-600" /> {shownDoctorCount} doctors</span>
-          <span className="flex items-center gap-2"><CalendarCheck className="h-4 w-4 text-teal-600" /> Rolling 30-day availability</span>
-          <span className="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-500">
-            Seeded demo data
-          </span>
-        </div>
-      </div>
-
-      <div className="py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-2xl mb-14">
-            <p className="text-sm font-semibold uppercase tracking-wider text-teal-700 mb-3">How the demo works</p>
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Built around real availability</h2>
-            <p className="text-lg text-gray-600">
-              No mock calendar and no double-booked slots. The demo exercises the same booking flow a patient would use.
+      <section className="container-editorial py-20 lg:py-24" aria-labelledby="cta-title">
+        <div className="flex flex-col justify-between gap-8 border-b border-line pb-8 lg:flex-row lg:items-end">
+          <div className="max-w-2xl">
+            <p className="eyebrow">Seeded demo data</p>
+            <h2 id="cta-title" className="mt-4 font-serif text-[clamp(2.8rem,5vw,5rem)] leading-[0.95] tracking-[-0.03em] text-ink">
+              Open the calendar.
+            </h2>
+            <p className="mt-5 text-base leading-relaxed text-muted">
+              Create a demo patient account and book a slot from the seeded hospital schedule. Do not enter
+              personal or medical information.
             </p>
           </div>
-
-          <div className="grid md:grid-cols-2 gap-6">
-            {features.map((feature) => (
-              <div key={feature.title} className="feature-card flex gap-5 rounded-2xl border border-gray-200 p-6">
-                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-700">
-                  <feature.icon className="h-6 w-6" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{feature.title}</h3>
-                  <p className="text-gray-600 leading-relaxed">{feature.description}</p>
-                </div>
-              </div>
-            ))}
+          <div className="flex flex-wrap gap-3">
+            <Link to="/doctors" className="btn btn-primary">
+              Find a doctor
+            </Link>
+            <Link to="/auth" className="btn btn-outline">
+              Create a patient account
+            </Link>
           </div>
         </div>
-      </div>
-
-      <div className="bg-gray-50 py-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-[0.8fr_1.2fr] gap-16 items-start">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-wider text-teal-700 mb-3">Booking flow</p>
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">From search to confirmed slot</h2>
-            <p className="text-lg text-gray-600">
-              Three steps, each backed by the seeded hospital schedule.
-            </p>
-          </div>
-
-          <ol className="relative border-l border-teal-200 pl-8 space-y-10">
-            <li>
-              <span className="text-sm font-semibold text-teal-700">01</span>
-              <h3 className="text-xl font-semibold text-gray-900 mt-1 mb-2">Find a specialist</h3>
-              <p className="text-gray-600">Filter by name or specialty, then open a doctor profile to see the full schedule.</p>
-            </li>
-            <li>
-              <span className="text-sm font-semibold text-teal-700">02</span>
-              <h3 className="text-xl font-semibold text-gray-900 mt-1 mb-2">Pick a real slot</h3>
-              <p className="text-gray-600">The calendar reads generated availability, not a hard-coded mock list.</p>
-            </li>
-            <li>
-              <span className="text-sm font-semibold text-teal-700">03</span>
-              <h3 className="text-xl font-semibold text-gray-900 mt-1 mb-2">Manage the appointment</h3>
-              <p className="text-gray-600">See it in your dashboard. Cancel it and the slot returns to the schedule.</p>
-            </li>
-          </ol>
-        </div>
-      </div>
-
-      <div className="bg-teal-700 py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-3xl">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Try the booking flow</h2>
-            <p className="text-lg text-teal-50 mb-8">
-              Create a demo patient account and reserve a slot from the seeded schedule.
-            </p>
-            <Button
-              size="lg"
-              onClick={() => navigate(user ? '/doctors' : '/auth')}
-              className="bg-white text-teal-700 hover:bg-gray-50"
-            >
-              {user ? 'Find another doctor' : 'Create a patient account'} <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-          </div>
-        </div>
-      </div>
+      </section>
     </div>
   );
 };
+
+export default HomePage;

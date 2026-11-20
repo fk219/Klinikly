@@ -82,7 +82,7 @@ describe('admin appointments', () => {
       active: true
     });
 
-    const startAt = new Date('2026-05-04T09:00:00.000Z');
+    const startAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
     await AvailabilitySlotModel.create({
       hospitalId: hospital._id,
       doctorId: doctor._id,
@@ -168,7 +168,7 @@ describe('admin appointments', () => {
       hospitalId: hospitalB._id,
       patientUserId: patient._id,
       doctorId: doctorB._id,
-      slotStartAt: new Date('2026-05-05T09:00:00.000Z'),
+      slotStartAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
       reason: 'Other tenant appointment',
       status: 'scheduled'
     });

@@ -132,25 +132,25 @@ export const AvailabilityPage: FC = () => {
   };
 
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Availability Management</h1>
+    <div className="admin-page">
+      <h1 className="admin-title mb-6">Availability Management</h1>
 
       <div className="grid lg:grid-cols-4 gap-6">
         {/* Doctor list */}
         <div className="lg:col-span-1">
-          <div className="bg-white rounded-xl border border-gray-200">
-            <div className="px-4 py-3 border-b border-gray-200">
-              <h2 className="font-semibold text-gray-900 text-sm">Select Doctor</h2>
+          <div className="bg-white border border-line">
+            <div className="px-4 py-3 border-b border-line">
+              <h2 className="font-semibold text-ink text-sm">Select Doctor</h2>
             </div>
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-line">
               {doctors.map(d => (
                 <button key={d.id} onClick={() => selectDoctor(d)}
-                  className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${selectedDoctor?.id === d.id ? 'bg-teal-50 border-l-2 border-teal-600' : ''}`}>
-                  <p className="text-sm font-medium text-gray-900 truncate">{d.name}</p>
-                  <p className="text-xs text-teal-600">{d.specialty}</p>
+                  className={`w-full text-left px-4 py-3 hover:bg-stone/40 transition-colors ${selectedDoctor?.id === d.id ? 'bg-sage/50 border-l-2 border-pine' : ''}`}>
+                  <p className="text-sm font-medium text-ink truncate">{d.name}</p>
+                  <p className="text-xs text-pine">{d.specialty}</p>
                 </button>
               ))}
-              {doctors.length === 0 && <p className="px-4 py-6 text-sm text-gray-500 text-center">No doctors found</p>}
+              {doctors.length === 0 && <p className="px-4 py-6 text-sm text-muted text-center">No doctors found</p>}
             </div>
           </div>
         </div>
@@ -158,7 +158,7 @@ export const AvailabilityPage: FC = () => {
         {/* Main panel */}
         <div className="lg:col-span-3 space-y-5">
           {!selectedDoctor ? (
-            <div className="bg-white rounded-xl border border-gray-200 py-16 text-center text-gray-500">
+            <div className="bg-white border border-line py-16 text-center text-muted">
               Select a doctor to manage their availability
             </div>
           ) : (
@@ -174,19 +174,19 @@ export const AvailabilityPage: FC = () => {
               </div>
 
               {/* Day view */}
-              <div className="bg-white rounded-xl border border-gray-200">
-                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
-                  <button onClick={() => changeDate(-1)} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-                    <ChevronLeft className="h-5 w-5 text-gray-600" />
+              <div className="bg-white border border-line">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-line">
+                  <button onClick={() => changeDate(-1)} className="p-1.5 hover:bg-stone transition-colors">
+                    <ChevronLeft className="h-5 w-5 text-muted" />
                   </button>
                   <div className="text-center">
-                    <p className="font-semibold text-gray-900">
+                    <p className="font-semibold text-ink">
                       {new Date(viewDate + 'T12:00:00Z').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' })}
                     </p>
-                    <p className="text-xs text-gray-500">{slots.length} slot{slots.length !== 1 ? 's' : ''}</p>
+                    <p className="text-xs text-muted">{slots.length} slot{slots.length !== 1 ? 's' : ''}</p>
                   </div>
-                  <button onClick={() => changeDate(1)} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-                    <ChevronRight className="h-5 w-5 text-gray-600" />
+                  <button onClick={() => changeDate(1)} className="p-1.5 hover:bg-stone transition-colors">
+                    <ChevronRight className="h-5 w-5 text-muted" />
                   </button>
                 </div>
 
@@ -198,23 +198,23 @@ export const AvailabilityPage: FC = () => {
                   </div>
 
                   {slots.length === 0 ? (
-                    <p className="text-center text-gray-500 text-sm py-8">No slots for this day. Generate slots or add manually.</p>
+                    <p className="text-center text-muted text-sm py-8">No slots for this day. Generate slots or add manually.</p>
                   ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                       {slots.map(slot => (
-                        <div key={slot.id} className="border border-gray-200 rounded-lg p-3">
-                          <p className="text-sm font-medium text-gray-900 mb-1.5">{formatTime(slot.startAt)}</p>
+                        <div key={slot.id} className="border border-line p-3">
+                          <p className="text-sm font-medium text-ink mb-1.5">{formatTime(slot.startAt)}</p>
                           <Badge variant={slotBadge(slot.status) as 'green' | 'blue' | 'red'}>{slot.status}</Badge>
                           {slot.status !== 'booked' && (
                             <div className="flex gap-1.5 mt-2">
                               {slot.status === 'available' && (
                                 <button onClick={() => void handleBlock(slot)} title="Block slot"
-                                  className="p-1 text-gray-400 hover:text-amber-500 transition-colors">
+                                  className="p-1 text-muted hover:text-amber-500 transition-colors">
                                   <Ban className="h-3.5 w-3.5" />
                                 </button>
                               )}
                               <button onClick={() => void handleDelete(slot)} title="Delete slot"
-                                className="p-1 text-gray-400 hover:text-red-500 transition-colors">
+                                className="p-1 text-muted hover:text-red-500 transition-colors">
                                 <Trash2 className="h-3.5 w-3.5" />
                               </button>
                             </div>
@@ -235,15 +235,15 @@ export const AvailabilityPage: FC = () => {
         <form onSubmit={e => void handleSaveRule(e)} className="space-y-5">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Timezone</label>
+              <label className="block text-sm font-medium text-ink mb-1">Timezone</label>
               <input value={rule.timezone} onChange={e => setRule(p => ({ ...p, timezone: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                className="w-full px-3 py-2 border border-line text-sm focus:outline-none focus:border-pine focus:outline-none" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Slot Duration (minutes)</label>
+              <label className="block text-sm font-medium text-ink mb-1">Slot Duration (minutes)</label>
               <input type="number" min={5} max={240} value={rule.slotDurationMinutes}
                 onChange={e => setRule(p => ({ ...p, slotDurationMinutes: Number(e.target.value) }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                className="w-full px-3 py-2 border border-line text-sm focus:outline-none focus:border-pine focus:outline-none" />
             </div>
           </div>
 
@@ -251,24 +251,24 @@ export const AvailabilityPage: FC = () => {
             {DAYS.map(day => {
               const windows = rule.weeklyTemplate[day] ?? [];
               return (
-                <div key={day} className="border border-gray-200 rounded-lg p-3">
+                <div key={day} className="border border-line p-3">
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-medium text-gray-900">{DAY_LABELS[day]}</p>
+                    <p className="text-sm font-medium text-ink">{DAY_LABELS[day]}</p>
                     <button type="button" onClick={() => addWindow(day)}
-                      className="text-xs text-teal-600 hover:text-teal-700 font-medium">+ Add window</button>
+                      className="text-xs text-pine hover:text-pine font-medium">+ Add window</button>
                   </div>
                   {windows.length === 0 ? (
-                    <p className="text-xs text-gray-400">No working hours (day off)</p>
+                    <p className="text-xs text-muted">No working hours (day off)</p>
                   ) : (
                     windows.map((w, i) => (
                       <div key={i} className="flex items-center gap-2 mb-1.5">
                         <input type="time" value={w.start} onChange={e => updateWindow(day, i, 'start', e.target.value)}
-                          className="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-teal-500" />
-                        <span className="text-gray-400 text-sm">to</span>
+                          className="px-2 py-1 border border-line rounded text-sm focus:outline-none focus:ring-1 focus:ring-teal-500" />
+                        <span className="text-muted text-sm">to</span>
                         <input type="time" value={w.end} onChange={e => updateWindow(day, i, 'end', e.target.value)}
-                          className="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-teal-500" />
+                          className="px-2 py-1 border border-line rounded text-sm focus:outline-none focus:ring-1 focus:ring-teal-500" />
                         <button type="button" onClick={() => removeWindow(day, i)}
-                          className="text-gray-400 hover:text-red-500 transition-colors"><Trash2 className="h-4 w-4" /></button>
+                          className="text-muted hover:text-red-500 transition-colors"><Trash2 className="h-4 w-4" /></button>
                       </div>
                     ))
                   )}
@@ -287,20 +287,20 @@ export const AvailabilityPage: FC = () => {
       {/* Generate Slots Modal */}
       <Modal isOpen={showGenModal} onClose={() => setShowGenModal(false)} title="Generate Slots">
         <form onSubmit={e => void handleGenerate(e)} className="space-y-4">
-          <p className="text-sm text-gray-600">Generate availability slots from the weekly schedule for a date range.</p>
+          <p className="text-sm text-muted">Generate availability slots from the weekly schedule for a date range.</p>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">From</label>
+              <label className="block text-sm font-medium text-ink mb-1">From</label>
               <input type="date" required value={genFrom} onChange={e => setGenFrom(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                className="w-full px-3 py-2 border border-line text-sm focus:outline-none focus:border-pine focus:outline-none" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">To</label>
+              <label className="block text-sm font-medium text-ink mb-1">To</label>
               <input type="date" required value={genTo} onChange={e => setGenTo(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                className="w-full px-3 py-2 border border-line text-sm focus:outline-none focus:border-pine focus:outline-none" />
             </div>
           </div>
-          {genResult && <p className="text-sm text-green-700 bg-green-50 px-3 py-2 rounded-lg">{genResult}</p>}
+          {genResult && <p className="text-sm text-pine bg-green-50 px-3 py-2 rounded-lg">{genResult}</p>}
           <div className="flex justify-end gap-3 pt-2">
             <Button type="button" variant="outline" onClick={() => setShowGenModal(false)}>Close</Button>
             <Button type="submit" loading={generating}><Zap className="h-4 w-4 mr-1.5" /> Generate</Button>
@@ -311,11 +311,11 @@ export const AvailabilityPage: FC = () => {
       {/* Add Slot Modal */}
       <Modal isOpen={showAddSlot} onClose={() => setShowAddSlot(false)} title="Add Manual Slot">
         <div className="space-y-4">
-          <p className="text-sm text-gray-600">Add a single available slot on <strong>{viewDate}</strong> (UTC).</p>
+          <p className="text-sm text-muted">Add a single available slot on <strong>{viewDate}</strong> (UTC).</p>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Time (UTC)</label>
+            <label className="block text-sm font-medium text-ink mb-1">Time (UTC)</label>
             <input type="time" value={newSlotTime} onChange={e => setNewSlotTime(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" />
+              className="w-full px-3 py-2 border border-line text-sm focus:outline-none focus:border-pine focus:outline-none" />
           </div>
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="outline" onClick={() => setShowAddSlot(false)}>Cancel</Button>

@@ -8,15 +8,15 @@ interface BadgeProps {
 }
 
 const styles: Record<BadgeVariant, string> = {
-  green: 'bg-green-100 text-green-800',
-  red: 'bg-red-100 text-red-800',
-  yellow: 'bg-yellow-100 text-yellow-800',
-  blue: 'bg-blue-100 text-blue-800',
-  gray: 'bg-gray-100 text-gray-700',
+  green: 'border-pine/30 bg-sage text-pine',
+  red: 'border-coral/30 bg-[#F7ECE6] text-coral',
+  yellow: 'border-[#C9A961]/40 bg-[#F5EEDC] text-[#7A5E1D]',
+  blue: 'border-line bg-canvas text-muted',
+  gray: 'border-line bg-stone text-muted',
 };
 
 export const Badge: FC<BadgeProps> = ({ variant = 'gray', children }) => (
-  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${styles[variant]}`}>
+  <span className={`inline-flex items-center border px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] ${styles[variant]}`}>
     {children}
   </span>
 );

@@ -1,4 +1,4 @@
-import { useEffect, type FC, type ReactNode } from 'react';
+import { useEffect, useRef, type FC, type ReactNode } from 'react';
 import { X } from 'lucide-react';
 
 interface ModalProps {
@@ -10,29 +10,53 @@ interface ModalProps {
 }
 
 export const Modal: FC<ModalProps> = ({ isOpen, onClose, title, children, size = 'md' }) => {
-  useEffect(() => {
-    document.body.style.overflow = isOpen ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
-  }, [isOpen]);
+  const dialogRef = useRef<HTMLDialogElement>(null);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    if (isOpen) {
+      if (!dialog.open) {
+        if (typeof dialog.showModal === 'function') dialog.showModal();
+        else dialog.setAttribute('open', '');
+      }
+      document.body.style.overflow = 'hidden';
+    } else if (dialog.open) {
+      dialog.close();
+    }
+
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
 
   const sizes = { sm: 'max-w-md', md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-4xl' };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex min-h-screen items-center justify-center p-4">
-        <div className="fixed inset-0 bg-black/50" onClick={onClose} />
-        <div className={`relative w-full ${sizes[size]} bg-white rounded-xl shadow-2xl`}>
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-          <div className="px-6 py-4">{children}</div>
-        </div>
+    <dialog
+      ref={dialogRef}
+      aria-labelledby="admin-modal-title"
+      onClose={onClose}
+      onClick={(event) => {
+        if (event.target === dialogRef.current) onClose();
+      }}
+      className={`m-auto w-[min(92vw,100%)] ${sizes[size]} border border-line bg-white p-0 text-ink backdrop:bg-ink/50`}
+    >
+      <div className="flex items-center justify-between border-b border-line px-6 py-4">
+        <h2 id="admin-modal-title" className="font-serif text-2xl leading-tight">
+          {title}
+        </h2>
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex h-9 w-9 items-center justify-center text-muted transition-colors hover:text-ink"
+          aria-label="Close dialog"
+        >
+          <X className="h-4 w-4" aria-hidden="true" />
+        </button>
       </div>
-    </div>
+      <div className="max-h-[75vh] overflow-y-auto px-6 py-5">{children}</div>
+    </dialog>
   );
 };

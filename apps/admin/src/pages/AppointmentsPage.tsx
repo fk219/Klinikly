@@ -83,35 +83,35 @@ export const AppointmentsPage: FC = () => {
     s === 'scheduled' ? 'green' : s === 'cancelled' ? 'red' : 'gray';
 
   return (
-    <div className="p-8">
+    <div className="admin-page">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Appointments</h1>
-        <p className="text-sm text-gray-500 mt-0.5">{appointments.length} appointment{appointments.length !== 1 ? 's' : ''}</p>
+        <h1 className="admin-title">Appointments</h1>
+        <p className="text-sm text-muted mt-0.5">{appointments.length} appointment{appointments.length !== 1 ? 's' : ''}</p>
       </div>
 
       {/* Filters */}
-      <form onSubmit={handleFilter} className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
+      <form onSubmit={handleFilter} className="bg-white border border-line p-4 mb-6">
         <div className="flex flex-wrap gap-3 items-end">
           <div className="flex-1 min-w-40">
-            <label className="block text-xs font-medium text-gray-600 mb-1">Doctor</label>
+            <label className="block text-xs font-medium text-muted mb-1">Doctor</label>
             <div className="relative">
-              <Filter className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+              <Filter className="absolute left-3 top-2.5 h-4 w-4 text-muted" />
               <select value={filterDoctor} onChange={e => setFilterDoctor(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none bg-white">
+                className="w-full pl-9 pr-3 py-2 border border-line text-sm focus:outline-none focus:border-pine focus:outline-none appearance-none bg-white">
                 <option value="">All Doctors</option>
                 {doctors.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
               </select>
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">From</label>
+            <label className="block text-xs font-medium text-muted mb-1">From</label>
             <input type="date" value={filterFrom} onChange={e => setFilterFrom(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" />
+              className="px-3 py-2 border border-line text-sm focus:outline-none focus:border-pine focus:outline-none" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">To</label>
+            <label className="block text-xs font-medium text-muted mb-1">To</label>
             <input type="date" value={filterTo} onChange={e => setFilterTo(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" />
+              className="px-3 py-2 border border-line text-sm focus:outline-none focus:border-pine focus:outline-none" />
           </div>
           <Button type="submit" size="sm">
             <Search className="h-4 w-4 mr-1.5" /> Search
@@ -123,30 +123,30 @@ export const AppointmentsPage: FC = () => {
       </form>
 
       {/* Table */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="bg-white border border-line overflow-hidden">
         {loading ? (
-          <div className="flex justify-center py-16"><div className="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin" /></div>
+          <div className="flex justify-center py-16"><div className="w-8 h-8 border-4 border-pine border-t-transparent rounded-full animate-spin" /></div>
         ) : appointments.length === 0 ? (
-          <div className="py-16 text-center text-gray-500 text-sm">No appointments found</div>
+          <div className="py-16 text-center text-muted text-sm">No appointments found</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-stone/40 border-b border-line">
                 <tr>
                   {['Doctor', 'Date & Time', 'Reason', 'Status', 'Actions'].map(h => (
-                    <th key={h} className="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">{h}</th>
+                    <th key={h} className="px-5 py-3 text-left text-xs font-semibold text-muted uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-line">
                 {appointments.map(appt => (
-                  <tr key={appt.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-5 py-4 font-medium text-gray-900">{doctorName(appt.doctorId)}</td>
-                    <td className="px-5 py-4 text-gray-600 whitespace-nowrap">
+                  <tr key={appt.id} className="hover:bg-stone/40 transition-colors">
+                    <td className="px-5 py-4 font-medium text-ink">{doctorName(appt.doctorId)}</td>
+                    <td className="px-5 py-4 text-muted whitespace-nowrap">
                       {formatDate(appt.slotStartAt)}<br />
-                      <span className="text-xs text-gray-400">{formatTime(appt.slotStartAt)}</span>
+                      <span className="text-xs text-muted">{formatTime(appt.slotStartAt)}</span>
                     </td>
-                    <td className="px-5 py-4 text-gray-600 max-w-xs">
+                    <td className="px-5 py-4 text-muted max-w-xs">
                       <p className="truncate">{appt.reason}</p>
                     </td>
                     <td className="px-5 py-4">
@@ -158,11 +158,11 @@ export const AppointmentsPage: FC = () => {
                       {appt.status === 'scheduled' && (
                         <div className="flex gap-2">
                           <button onClick={() => setConfirmModal({ action: 'complete', id: appt.id })}
-                            title="Mark complete" className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors">
+                            title="Mark complete" className="p-1.5 text-pine hover:bg-green-50 transition-colors">
                             <CheckCircle className="h-4 w-4" />
                           </button>
                           <button onClick={() => setConfirmModal({ action: 'cancel', id: appt.id })}
-                            title="Cancel" className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                            title="Cancel" className="p-1.5 text-coral hover:bg-[#F7ECE6] transition-colors">
                             <XCircle className="h-4 w-4" />
                           </button>
                         </div>
@@ -180,7 +180,7 @@ export const AppointmentsPage: FC = () => {
       <Modal isOpen={!!confirmModal} onClose={() => setConfirmModal(null)}
         title={confirmModal?.action === 'cancel' ? 'Cancel Appointment' : 'Complete Appointment'}>
         <div className="space-y-4">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-muted">
             {confirmModal?.action === 'cancel'
               ? 'Are you sure you want to cancel this appointment? The slot will be freed.'
               : 'Mark this appointment as completed?'}

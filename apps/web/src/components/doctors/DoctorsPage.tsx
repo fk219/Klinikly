@@ -1,17 +1,16 @@
-import { useState, useEffect, useRef, useCallback, type FC } from 'react';
+import { useState, useEffect, useCallback, type FC } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Search, Filter, Star, Clock, DollarSign, ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Star, ArrowUpRight } from 'lucide-react';
 import { isApiError } from '@app/shared';
 import { useAppointments } from '../../contexts/appointmentStore';
 import { apiSearchDoctors } from '../../api/search';
 import { doctorInitial } from '../../utils/doctorInitial';
 import { Doctor } from '../../types';
-import { Button } from '../common/Button';
-import { gsap } from 'gsap';
 
 const PAGE_SIZE = 12;
 
-// ── Debounce hook ──────────────────────────────────────────────────────────────
+const tints = ['bg-sage text-pine', 'bg-stone text-ink', 'bg-[#E9E2D6] text-ink'];
+
 function useDebounce<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState(value);
   useEffect(() => {
@@ -21,107 +20,126 @@ function useDebounce<T>(value: T, delay: number): T {
   return debounced;
 }
 
-// ── Skeleton card ──────────────────────────────────────────────────────────────
-const DoctorCardSkeleton: FC = () => (
-  <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden animate-pulse">
-    <div className="w-full h-48 bg-gray-200" />
-    <div className="p-6 space-y-3">
-      <div className="h-5 bg-gray-200 rounded w-3/4" />
-      <div className="h-4 bg-gray-200 rounded w-1/2" />
-      <div className="h-3 bg-gray-200 rounded w-full" />
-      <div className="h-3 bg-gray-200 rounded w-5/6" />
-      <div className="h-9 bg-gray-200 rounded-xl mt-4" />
+const DoctorCardSkeleton: FC<{ index: number }> = ({ index }) => (
+  <div className="border border-line bg-white" aria-hidden="true">
+    <div className={`h-40 animate-pulse ${index % 3 === 0 ? 'bg-sage/70' : index % 3 === 1 ? 'bg-stone' : 'bg-[#E9E2D6]/70'}`} />
+    <div className="space-y-3 p-5">
+      <div className="h-5 w-2/3 animate-pulse bg-stone" />
+      <div className="h-3 w-1/2 animate-pulse bg-stone" />
+      <div className="h-3 w-full animate-pulse bg-stone" />
+      <div className="h-10 w-full animate-pulse bg-stone" />
     </div>
   </div>
 );
 
-// ── Doctor card ────────────────────────────────────────────────────────────────
-const DoctorCard: FC<{ doctor: Doctor; viewMode: 'grid' | 'list' }> = ({ doctor, viewMode }) => {
+const DoctorCard: FC<{
+  doctor: Doctor;
+  index: number;
+  hospitalName?: string;
+  viewMode: 'grid' | 'list';
+}> = ({ doctor, index, hospitalName, viewMode }) => {
   const navigate = useNavigate();
+  const tint = tints[index % tints.length];
 
   if (viewMode === 'list') {
     return (
-      <div className="doctor-card bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100 hover:border-teal-200 flex gap-5 p-5">
-        {doctor.avatarUrl ? (
-          <img src={doctor.avatarUrl} alt={doctor.name} className="w-20 h-20 rounded-xl object-cover flex-shrink-0" />
-        ) : (
-          <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-teal-100 to-emerald-100 flex items-center justify-center flex-shrink-0">
-            <span className="text-2xl font-bold text-teal-400">{doctorInitial(doctor.name)}</span>
+      <article className="doctor-card group grid gap-5 border-b border-line py-6 transition-colors hover:bg-white sm:grid-cols-[5rem_1fr_auto] sm:items-center sm:px-4">
+        <div className={`hidden h-20 w-20 items-center justify-center sm:flex ${tint}`}>
+          <span className="font-serif text-3xl">{doctorInitial(doctor.name)}</span>
+        </div>
+
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <h2 className="font-serif text-2xl leading-tight text-ink transition-colors group-hover:text-pine">
+              {doctor.name}
+            </h2>
+            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-coral">
+              {doctor.specialty}
+            </span>
           </div>
-        )}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h3 className="text-lg font-bold text-gray-900 hover:text-teal-600 transition-colors">{doctor.name}</h3>
-              <span className="inline-block bg-gradient-to-r from-teal-600 to-emerald-600 text-white px-2.5 py-0.5 rounded-full text-xs font-medium mt-1">
-                {doctor.specialty}
-              </span>
-            </div>
-            <div className="flex items-center gap-1 bg-white border border-gray-200 px-2.5 py-1 rounded-full flex-shrink-0">
-              <Star className="h-3.5 w-3.5 text-yellow-400 fill-current" />
-              <span className="text-sm font-semibold">{doctor.rating ?? 'Not rated'}</span>
-            </div>
-          </div>
-          <p className="text-gray-500 text-sm mt-2 line-clamp-2">{doctor.bio}</p>
-          <div className="flex items-center justify-between mt-3">
-            <div className="flex items-center gap-4 text-sm text-gray-500">
-              <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5 text-teal-500" />{doctor.experience ? `${doctor.experience} yrs` : 'Not listed'}</span>
-              <span className="flex items-center gap-1"><DollarSign className="h-3.5 w-3.5 text-teal-500" />${doctor.consultationFee}</span>
-            </div>
-            <div className="flex gap-2">
-              <Link to={`/doctors/${doctor.id}`}
-                className="inline-flex items-center px-3 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-600 hover:bg-teal-50 hover:border-teal-300 hover:text-teal-700 transition-colors">
-                Profile
-              </Link>
-              <Button onClick={() => navigate(`/booking/${doctor.id}`)} size="sm">Book Now</Button>
-            </div>
+          <p className="mt-1 text-sm text-muted">
+            {hospitalName ?? 'Hospital listed on profile'}
+            {doctor.experience ? ` · ${doctor.experience} yrs` : ''}
+            {doctor.rating ? ` · ${doctor.rating.toFixed(1)} rating` : ''}
+          </p>
+          <p className="mt-2 line-clamp-1 max-w-2xl text-sm leading-relaxed text-muted">{doctor.bio}</p>
+        </div>
+
+        <div className="flex items-center justify-between gap-4 sm:justify-end">
+          <p className="font-mono text-sm tabular-nums text-ink">
+            ${doctor.consultationFee}
+            <span className="ml-1 text-[9px] uppercase tracking-[0.12em] text-muted">/ visit</span>
+          </p>
+          <div className="flex gap-2">
+            <Link to={`/doctors/${doctor.id}`} className="btn btn-outline min-h-10 px-3 py-2">
+              Profile
+            </Link>
+            <button
+              type="button"
+              onClick={() => navigate(`/booking/${doctor.id}`)}
+              className="btn btn-primary min-h-10 px-3 py-2"
+            >
+              Book
+            </button>
           </div>
         </div>
-      </div>
+      </article>
     );
   }
 
   return (
-    <div className="doctor-card bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 border border-gray-100 hover:border-teal-200 group overflow-hidden">
-      <div className="relative">
-        {doctor.avatarUrl ? (
-          <img src={doctor.avatarUrl} alt={doctor.name} className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-500" />
-        ) : (
-          <div className="w-full h-48 bg-gradient-to-br from-teal-100 to-emerald-100 flex items-center justify-center">
-            <span className="text-5xl font-bold text-teal-300">{doctorInitial(doctor.name)}</span>
-          </div>
-        )}
-        <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full flex items-center gap-1">
-          <Star className="h-4 w-4 text-yellow-400 fill-current" />
-          <span className="text-sm font-semibold">{doctor.rating ?? 'Not rated'}</span>
-        </div>
-        <div className="absolute bottom-4 left-4 bg-gradient-to-r from-teal-600 to-emerald-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+    <article className="doctor-card group flex flex-col border border-line bg-white transition-colors hover:border-pine">
+      <div className={`relative flex h-40 items-center justify-center overflow-hidden ${tint}`}>
+        <span className="font-serif text-[5.5rem] leading-none opacity-90" aria-hidden="true">
+          {doctorInitial(doctor.name)}
+        </span>
+        <span className="absolute left-4 top-4 font-mono text-[9px] uppercase tracking-[0.16em] opacity-60">
+          {String(index + 1).padStart(2, '0')}
+        </span>
+        {doctor.rating ? (
+          <span className="absolute right-4 top-4 inline-flex items-center gap-1 bg-white/80 px-2 py-1 font-mono text-[10px] tabular-nums">
+            <Star className="h-3 w-3 fill-current" aria-hidden="true" />
+            {doctor.rating.toFixed(1)}
+          </span>
+        ) : null}
+        <span className="absolute bottom-4 left-4 bg-white px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.14em] text-ink">
           {doctor.specialty}
-        </div>
+        </span>
       </div>
-      <div className="p-6">
-        <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-teal-600 transition-colors">{doctor.name}</h3>
-        <div className="flex items-center gap-4 text-sm text-gray-600 mb-4">
-          <span className="flex items-center gap-1"><Clock className="h-4 w-4 text-teal-500" />{doctor.experience ? `${doctor.experience} yrs` : 'Not listed'}</span>
-          <span className="flex items-center gap-1"><DollarSign className="h-4 w-4 text-teal-500" />${doctor.consultationFee}</span>
+
+      <div className="flex flex-1 flex-col p-5">
+        <h2 className="font-serif text-2xl leading-tight text-ink transition-colors group-hover:text-pine">
+          <Link to={`/doctors/${doctor.id}`}>{doctor.name}</Link>
+        </h2>
+        <p className="mt-1 text-sm text-muted">{hospitalName ?? 'Hospital listed on profile'}</p>
+        <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-muted">{doctor.bio}</p>
+
+        <div className="mt-4 flex items-center justify-between border-t border-line pt-3 font-mono text-[10px] uppercase tracking-[0.12em] text-muted">
+          <span>{doctor.experience ? `${doctor.experience} yrs` : 'Experience not listed'}</span>
+          <span className="tabular-nums text-ink">${doctor.consultationFee}</span>
         </div>
-        <p className="text-gray-600 text-sm mb-4 line-clamp-3 leading-relaxed">{doctor.bio}</p>
-        <div className="flex gap-2">
-          <Button onClick={() => navigate(`/booking/${doctor.id}`)} size="sm" className="flex-1">Book Now</Button>
-          <Link to={`/doctors/${doctor.id}`}
-            className="inline-flex items-center justify-center px-3 py-1.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-teal-50 hover:border-teal-300 hover:text-teal-700 transition-colors"
-            title="View profile">
-            <ExternalLink className="h-4 w-4" />
+
+        <div className="mt-auto grid grid-cols-2 gap-2 pt-4">
+          <Link to={`/doctors/${doctor.id}`} className="btn btn-outline min-h-11 px-3 py-2">
+            Profile
           </Link>
+          <button
+            type="button"
+            onClick={() => navigate(`/booking/${doctor.id}`)}
+            className="btn btn-primary min-h-11 px-3 py-2"
+          >
+            Book
+          </button>
         </div>
       </div>
-    </div>
+    </article>
   );
 };
 
-// ── Pagination ─────────────────────────────────────────────────────────────────
 const Pagination: FC<{
-  page: number; total: number; limit: number;
+  page: number;
+  total: number;
+  limit: number;
   onPage: (p: number) => void;
 }> = ({ page, total, limit, onPage }) => {
   const totalPages = Math.ceil(total / limit);
@@ -129,91 +147,103 @@ const Pagination: FC<{
 
   const pages: (number | '…')[] = [];
   if (totalPages <= 7) {
-    for (let i = 1; i <= totalPages; i++) pages.push(i);
+    for (let i = 1; i <= totalPages; i += 1) pages.push(i);
   } else {
     pages.push(1);
     if (page > 3) pages.push('…');
-    for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i++) pages.push(i);
+    for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i += 1) pages.push(i);
     if (page < totalPages - 2) pages.push('…');
     pages.push(totalPages);
   }
 
   return (
-    <div className="flex items-center justify-center gap-2 mt-10">
+    <nav className="mt-12 flex items-center justify-between border-t border-line pt-6" aria-label="Doctor pages">
       <button
-        onClick={() => onPage(page - 1)} disabled={page === 1}
-        className="p-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-teal-50 hover:border-teal-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-        aria-label="Previous page"
+        type="button"
+        onClick={() => onPage(page - 1)}
+        disabled={page === 1}
+        className="inline-flex min-h-11 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-ink transition-colors hover:text-pine disabled:cursor-not-allowed disabled:opacity-30"
       >
-        <ChevronLeft className="h-5 w-5" />
+        <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+        Previous
       </button>
 
-      {pages.map((p, i) =>
-        p === '…' ? (
-          <span key={`ellipsis-${i}`} className="px-2 text-gray-400 select-none">…</span>
-        ) : (
-          <button
-            key={p}
-            onClick={() => onPage(p as number)}
-            className={`w-10 h-10 rounded-lg text-sm font-medium transition-colors ${
-              p === page
-                ? 'bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-md'
-                : 'border border-gray-200 text-gray-700 hover:bg-teal-50 hover:border-teal-300'
-            }`}
-          >
-            {p}
-          </button>
-        )
-      )}
+      <div className="hidden items-center gap-1 sm:flex">
+        {pages.map((p, i) =>
+          p === '…' ? (
+            <span key={`ellipsis-${i}`} className="px-2 font-mono text-xs text-muted">
+              …
+            </span>
+          ) : (
+            <button
+              key={p}
+              type="button"
+              onClick={() => onPage(p)}
+              aria-current={p === page ? 'page' : undefined}
+              className={`flex h-10 w-10 items-center justify-center font-mono text-xs transition-colors ${
+                p === page
+                  ? 'bg-pine text-canvas'
+                  : 'border border-line text-muted hover:border-pine hover:text-ink'
+              }`}
+            >
+              {p}
+            </button>
+          )
+        )}
+      </div>
+
+      <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted sm:hidden">
+        {page} / {totalPages}
+      </span>
 
       <button
-        onClick={() => onPage(page + 1)} disabled={page === totalPages}
-        className="p-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-teal-50 hover:border-teal-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-        aria-label="Next page"
+        type="button"
+        onClick={() => onPage(page + 1)}
+        disabled={page === totalPages}
+        className="inline-flex min-h-11 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-ink transition-colors hover:text-pine disabled:cursor-not-allowed disabled:opacity-30"
       >
-        <ChevronRight className="h-5 w-5" />
+        Next
+        <ChevronRight className="h-4 w-4" aria-hidden="true" />
       </button>
-    </div>
+    </nav>
   );
 };
 
-// ── Main page ──────────────────────────────────────────────────────────────────
 export const DoctorsPage: FC = () => {
-  const { doctors, doctorsMeta, doctorsLoading, refreshDoctors } = useAppointments();
+  const { doctors, doctorsMeta, doctorsLoading, hospitals, refreshDoctors } = useAppointments();
   const [searchParams, setSearchParams] = useSearchParams();
   const specialtyParam = searchParams.get('specialty') ?? '';
-  const initialSpecialty = new URLSearchParams(window.location.search).get('specialty') ?? '';
+  const hospitalParam = searchParams.get('hospital') ?? '';
+
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedSpecialty, setSelectedSpecialty] = useState(initialSpecialty || specialtyParam);
+  const [selectedSpecialty, setSelectedSpecialty] = useState(specialtyParam);
+  const [selectedHospital, setSelectedHospital] = useState(hospitalParam);
   const [sortBy, setSortBy] = useState('rating');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [currentPage, setCurrentPage] = useState(1);
   const [allSpecialties, setAllSpecialties] = useState<string[]>([]);
-  const doctorsRef = useRef<HTMLDivElement>(null);
 
   const debouncedSearch = useDebounce(searchTerm, 300);
 
-  // Fetch when filters or page change
   useEffect(() => {
     void refreshDoctors({
       query: debouncedSearch.trim() || undefined,
       specialty: selectedSpecialty.trim() || undefined,
+      hospitalId: selectedHospital.trim() || undefined,
       page: currentPage,
       limit: PAGE_SIZE,
     });
-  }, [debouncedSearch, selectedSpecialty, currentPage]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [debouncedSearch, selectedSpecialty, selectedHospital, currentPage]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Keep the filter in sync when a specialty link changes the URL
   useEffect(() => {
     setSelectedSpecialty(specialtyParam);
-  }, [specialtyParam]);
+    setSelectedHospital(hospitalParam);
+  }, [specialtyParam, hospitalParam]);
 
-  // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch, selectedSpecialty]);
+  }, [debouncedSearch, selectedSpecialty, selectedHospital]);
 
-  // Load the complete specialty list once, independently of the active filter
   useEffect(() => {
     let active = true;
 
@@ -227,16 +257,6 @@ export const DoctorsPage: FC = () => {
     };
   }, []);
 
-  // Animate cards when new results arrive
-  useEffect(() => {
-    if (!doctorsLoading && doctors.length > 0 && doctorsRef.current) {
-      gsap.fromTo('.doctor-card',
-        { y: 30, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.4, stagger: 0.05, ease: 'power2.out' }
-      );
-    }
-  }, [doctors, doctorsLoading]);
-
   const sortedDoctors = [...doctors].sort((a, b) => {
     if (sortBy === 'rating') return (b.rating ?? 0) - (a.rating ?? 0);
     if (sortBy === 'experience') return (b.experience ?? 0) - (a.experience ?? 0);
@@ -244,18 +264,31 @@ export const DoctorsPage: FC = () => {
     return a.name.localeCompare(b.name);
   });
 
+  const syncFilters = (next: { specialty?: string; hospital?: string }) => {
+    const params = new URLSearchParams(searchParams);
+    const specialty = next.specialty ?? '';
+    const hospital = next.hospital ?? '';
+    if (specialty) params.set('specialty', specialty);
+    else params.delete('specialty');
+    if (hospital) params.set('hospital', hospital);
+    else params.delete('hospital');
+    setSearchParams(params, { replace: true });
+  };
+
   const handleSpecialtyChange = (value: string) => {
     setSelectedSpecialty(value);
+    syncFilters({ specialty: value, hospital: selectedHospital });
+  };
 
-    const next = new URLSearchParams(searchParams);
-    if (value) next.set('specialty', value);
-    else next.delete('specialty');
-    setSearchParams(next, { replace: true });
+  const handleHospitalChange = (value: string) => {
+    setSelectedHospital(value);
+    syncFilters({ specialty: selectedSpecialty, hospital: value });
   };
 
   const handleClearFilters = useCallback(() => {
     setSearchTerm('');
     setSelectedSpecialty('');
+    setSelectedHospital('');
     setSortBy('rating');
     setCurrentPage(1);
     setSearchParams(new URLSearchParams(), { replace: true });
@@ -267,124 +300,233 @@ export const DoctorsPage: FC = () => {
   };
 
   const totalPages = Math.ceil(doctorsMeta.total / doctorsMeta.limit);
-  const start = (doctorsMeta.page - 1) * doctorsMeta.limit + 1;
+  const start = doctorsMeta.total === 0 ? 0 : (doctorsMeta.page - 1) * doctorsMeta.limit + 1;
   const end = Math.min(doctorsMeta.page * doctorsMeta.limit, doctorsMeta.total);
+  const hasFilters = Boolean(searchTerm || selectedSpecialty || selectedHospital);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-teal-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent mb-4">
-            Find Your Perfect Doctor
-          </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Compare specialists and reserve a slot from their live schedules
+    <div className="min-h-screen bg-canvas">
+      <section className="container-editorial pb-10 pt-12 lg:pb-14 lg:pt-16" aria-labelledby="directory-title">
+        <div className="flex flex-col justify-between gap-8 border-b border-line pb-10 lg:flex-row lg:items-end">
+          <div>
+            <p className="eyebrow">Directory / {doctorsMeta.total || PAGE_SIZE} seeded specialists</p>
+            <h1
+              id="directory-title"
+              className="mt-5 max-w-[14ch] font-serif text-[clamp(3rem,6.5vw,6rem)] leading-[0.9] tracking-[-0.04em] text-ink"
+            >
+              Find your <span className="italic text-coral">specialist.</span>
+            </h1>
+          </div>
+          <p className="max-w-sm text-base leading-relaxed text-muted">
+            Compare specialists across partner hospitals, then book from the same schedule the hospital
+            manages.
           </p>
         </div>
 
-        {/* Filters */}
-        <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl border border-white/20 p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div className="relative md:col-span-2">
-              <Search className="h-5 w-5 text-gray-400 absolute left-4 top-3.5 pointer-events-none" />
+        <form
+          role="search"
+          aria-label="Filter doctors"
+          onSubmit={(event) => event.preventDefault()}
+          className="mt-8 grid gap-4 border border-line bg-white p-4 sm:grid-cols-2 lg:grid-cols-12 lg:items-end lg:p-5"
+        >
+          <div className="lg:col-span-4">
+            <label htmlFor="doctor-search" className="eyebrow block">
+              Search
+            </label>
+            <div className="relative mt-2">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden="true" />
               <input
+                id="doctor-search"
                 type="text"
-                placeholder="Search doctors, specialties..."
+                name="query"
+                placeholder="Doctor or condition"
                 value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white/50 transition-shadow"
+                onChange={(event) => setSearchTerm(event.target.value)}
+                className="min-h-12 w-full border border-line bg-canvas pl-10 pr-3 text-sm text-ink placeholder:text-muted/70 focus:border-pine focus:outline-none"
               />
             </div>
-            <div className="relative">
-              <Filter className="h-5 w-5 text-gray-400 absolute left-4 top-3.5 pointer-events-none" />
-              <select
-                value={selectedSpecialty}
-                onChange={e => handleSpecialtyChange(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent appearance-none bg-white/50"
-              >
-                <option value="">All Specialties</option>
-                {allSpecialties.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
+          </div>
+
+          <div className="lg:col-span-3">
+            <label htmlFor="doctor-specialty" className="eyebrow block">
+              Specialty
+            </label>
             <select
-              value={sortBy}
-              onChange={e => setSortBy(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white/50"
+              id="doctor-specialty"
+              value={selectedSpecialty}
+              onChange={(event) => handleSpecialtyChange(event.target.value)}
+              className="mt-2 min-h-12 w-full border border-line bg-canvas px-3 text-sm text-ink focus:border-pine focus:outline-none"
             >
-              <option value="rating">Highest Rated</option>
-              <option value="experience">Most Experienced</option>
-              <option value="fee">Lowest Fee</option>
-              <option value="name">Name A-Z</option>
+              <option value="">All specialties</option>
+              {allSpecialties.map((specialty) => (
+                <option key={specialty} value={specialty}>
+                  {specialty}
+                </option>
+              ))}
             </select>
-            <Button variant="outline" onClick={handleClearFilters} className="h-12">Clear All</Button>
           </div>
-        </div>
 
-        {/* Results bar */}
-        <div className="flex justify-between items-center mb-6">
-          <div className="text-gray-600">
-            {doctorsLoading ? (
-              <span className="text-gray-400">Loading…</span>
-            ) : doctorsMeta.total > 0 ? (
-              <span>
-                Showing <span className="font-semibold text-teal-600">{start}–{end}</span> of{' '}
-                <span className="font-semibold text-teal-600">{doctorsMeta.total}</span> doctors
-                {totalPages > 1 && <span className="text-gray-400 text-sm ml-2">(page {currentPage} of {totalPages})</span>}
-              </span>
-            ) : (
-              <span><span className="font-semibold text-teal-600">0</span> doctors found</span>
-            )}
+          <div className="lg:col-span-3">
+            <label htmlFor="doctor-hospital" className="eyebrow block">
+              Hospital
+            </label>
+            <select
+              id="doctor-hospital"
+              value={selectedHospital}
+              onChange={(event) => handleHospitalChange(event.target.value)}
+              className="mt-2 min-h-12 w-full border border-line bg-canvas px-3 text-sm text-ink focus:border-pine focus:outline-none"
+            >
+              <option value="">All hospitals</option>
+              {hospitals.map((hospital) => (
+                <option key={hospital.id} value={hospital.id}>
+                  {hospital.name}
+                </option>
+              ))}
+            </select>
           </div>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setViewMode('grid')} aria-label="Grid view"
-              className={`p-2 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-teal-100 text-teal-600' : 'text-gray-400 hover:text-teal-600'}`}>
-              <div className="w-4 h-4 grid grid-cols-2 gap-0.5">
-                {[...Array(4)].map((_, i) => <div key={i} className="bg-current rounded-sm" />)}
-              </div>
-            </button>
-            <button onClick={() => setViewMode('list')} aria-label="List view"
-              className={`p-2 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-teal-100 text-teal-600' : 'text-gray-400 hover:text-teal-600'}`}>
-              <div className="w-4 h-4 flex flex-col gap-1">
-                {[...Array(3)].map((_, i) => <div key={i} className="bg-current h-0.5 rounded" />)}
-              </div>
-            </button>
-          </div>
-        </div>
 
-        {/* Grid / List */}
-        <div ref={doctorsRef}>
-          {doctorsLoading ? (
-            <div className={`grid gap-8 ${viewMode === 'grid' ? 'md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1 max-w-4xl mx-auto'}`}>
-              {Array.from({ length: PAGE_SIZE }).map((_, i) => <DoctorCardSkeleton key={i} />)}
-            </div>
-          ) : sortedDoctors.length > 0 ? (
-            <div className={`grid gap-6 ${viewMode === 'grid' ? 'md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1 max-w-4xl mx-auto'}`}>
-              {sortedDoctors.map(doctor => <DoctorCard key={doctor.id} doctor={doctor} viewMode={viewMode} />)}
-            </div>
-          ) : (
-            <div className="text-center py-20">
-              <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Search className="h-12 w-12 text-gray-400" />
-              </div>
-              <h3 className="text-2xl font-semibold text-gray-900 mb-3">No doctors found</h3>
-              <p className="text-gray-500 text-lg mb-6">Try adjusting your search criteria or browse all doctors.</p>
-              <Button variant="outline" onClick={handleClearFilters}>Clear Filters</Button>
+          <div className="lg:col-span-2">
+            <label htmlFor="doctor-sort" className="eyebrow block">
+              Sort
+            </label>
+            <select
+              id="doctor-sort"
+              value={sortBy}
+              onChange={(event) => setSortBy(event.target.value)}
+              className="mt-2 min-h-12 w-full border border-line bg-canvas px-3 text-sm text-ink focus:border-pine focus:outline-none"
+            >
+              <option value="rating">Highest rated</option>
+              <option value="experience">Most experienced</option>
+              <option value="fee">Lowest fee</option>
+              <option value="name">Name A–Z</option>
+            </select>
+          </div>
+
+          {hasFilters && (
+            <div className="sm:col-span-2 lg:col-span-12">
+              <button
+                type="button"
+                onClick={handleClearFilters}
+                className="link-line font-mono text-[10px] uppercase tracking-[0.14em] text-coral"
+              >
+                Clear all filters
+              </button>
             </div>
           )}
+        </form>
+      </section>
+
+      <section className="container-editorial pb-20" aria-labelledby="results-title">
+        <h2 id="results-title" className="sr-only">
+          Doctor results
+        </h2>
+
+        <div className="flex flex-col justify-between gap-4 border-b border-line pb-4 sm:flex-row sm:items-center">
+          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted" aria-live="polite">
+            {doctorsLoading ? (
+              'Loading directory'
+            ) : doctorsMeta.total > 0 ? (
+              <>
+                Showing <span className="tabular-nums text-ink">{start}–{end}</span> of{' '}
+                <span className="tabular-nums text-ink">{doctorsMeta.total}</span> specialists
+                {totalPages > 1 ? ` · page ${currentPage} of ${totalPages}` : ''}
+              </>
+            ) : (
+              '0 specialists found'
+            )}
+          </p>
+
+          <div className="flex items-center gap-4">
+            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">View</span>
+            <div className="flex border border-line" role="group" aria-label="Result view">
+              <button
+                type="button"
+                onClick={() => setViewMode('grid')}
+                aria-label="Grid view"
+                aria-pressed={viewMode === 'grid'}
+                className={`flex h-9 w-9 items-center justify-center transition-colors ${
+                  viewMode === 'grid' ? 'bg-pine text-canvas' : 'text-muted hover:text-ink'
+                }`}
+              >
+                <span className="grid grid-cols-2 gap-0.5" aria-hidden="true">
+                  {[0, 1, 2, 3].map((item) => (
+                    <span key={item} className="h-1.5 w-1.5 bg-current" />
+                  ))}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('list')}
+                aria-label="List view"
+                aria-pressed={viewMode === 'list'}
+                className={`flex h-9 w-9 items-center justify-center border-l border-line transition-colors ${
+                  viewMode === 'list' ? 'bg-pine text-canvas' : 'text-muted hover:text-ink'
+                }`}
+              >
+                <span className="flex flex-col gap-1" aria-hidden="true">
+                  {[0, 1, 2].map((item) => (
+                    <span key={item} className="h-px w-3.5 bg-current" />
+                  ))}
+                </span>
+              </button>
+            </div>
+          </div>
         </div>
 
-        {/* Pagination */}
-        {!doctorsLoading && (
-          <Pagination
-            page={currentPage}
-            total={doctorsMeta.total}
-            limit={doctorsMeta.limit}
-            onPage={handlePageChange}
-          />
+        {doctorsLoading ? (
+          <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {Array.from({ length: 8 }).map((_, index) => (
+              <DoctorCardSkeleton key={index} index={index} />
+            ))}
+          </div>
+        ) : sortedDoctors.length > 0 ? (
+          viewMode === 'grid' ? (
+            <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {sortedDoctors.map((doctor, index) => (
+                <DoctorCard
+                  key={doctor.id}
+                  doctor={doctor}
+                  index={index}
+                  hospitalName={hospitals.find((hospital) => hospital.id === doctor.hospitalId)?.name}
+                  viewMode={viewMode}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="mt-2 border-t border-line">
+              {sortedDoctors.map((doctor, index) => (
+                <DoctorCard
+                  key={doctor.id}
+                  doctor={doctor}
+                  index={index}
+                  hospitalName={hospitals.find((hospital) => hospital.id === doctor.hospitalId)?.name}
+                  viewMode={viewMode}
+                />
+              ))}
+            </div>
+          )
+        ) : (
+          <div className="mt-6 border border-line bg-white px-6 py-16 text-center">
+            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-coral">Empty result</p>
+            <h3 className="mt-4 font-serif text-3xl text-ink">No specialists match those filters.</h3>
+            <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-muted">
+              Try a broader specialty or clear the hospital filter. The complete directory has{' '}
+              {doctorsMeta.total || 'several'} seeded specialists.
+            </p>
+            <button type="button" onClick={handleClearFilters} className="btn btn-outline mt-6">
+              Clear all filters
+            </button>
+            <Link to="/doctors" className="btn btn-primary mt-6 sm:ml-3">
+              Browse all doctors
+              <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+          </div>
         )}
-      </div>
+
+        {!doctorsLoading && (
+          <Pagination page={currentPage} total={doctorsMeta.total} limit={doctorsMeta.limit} onPage={handlePageChange} />
+        )}
+      </section>
     </div>
   );
 };

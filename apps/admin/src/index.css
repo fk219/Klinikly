@@ -1,3 +1,150 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --canvas: #f2f4f0;
+  --stone: #e6ebe4;
+  --ink: #10201c;
+  --pine: #1f4d43;
+  --sage: #dce5dd;
+  --coral: #c26a4a;
+  --muted: rgba(16, 32, 28, 0.62);
+  --line: rgba(16, 32, 28, 0.14);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html {
+  min-height: 100%;
+}
+
+body {
+  min-height: 100%;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: 'Public Sans', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.font-serif,
+.font-display {
+  font-family: 'Newsreader', Georgia, serif;
+  font-weight: 400;
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+input,
+select,
+textarea {
+  accent-color: var(--coral);
+}
+
+::selection {
+  background: rgba(194, 106, 74, 0.2);
+  color: var(--ink);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--canvas);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c5cec3;
+  border: 3px solid var(--canvas);
+  border-radius: 999px;
+}
+
+:focus-visible {
+  outline: 2px solid var(--coral);
+  outline-offset: 3px;
+}
+
+@layer components {
+  .eyebrow {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 0.68rem;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    line-height: 1.4;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .admin-page {
+    padding: 1.25rem;
+  }
+
+  @media (min-width: 640px) {
+    .admin-page {
+      padding: 2rem;
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .admin-page {
+      padding: 2.5rem 3rem;
+    }
+  }
+
+  .admin-title {
+    font-family: 'Newsreader', Georgia, serif;
+    font-size: clamp(2.2rem, 4vw, 3.4rem);
+    line-height: 0.95;
+    letter-spacing: -0.03em;
+    color: var(--ink);
+  }
+
+  .surface {
+    background: #fff;
+    border: 1px solid var(--line);
+  }
+
+  .field {
+    width: 100%;
+    border: 1px solid var(--line);
+    background: var(--canvas);
+    padding: 0.6rem 0.75rem;
+    font-size: 0.875rem;
+    color: var(--ink);
+  }
+
+  .field:focus {
+    border-color: var(--pine);
+    outline: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

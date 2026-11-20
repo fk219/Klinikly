@@ -114,11 +114,12 @@ doctorsRouter.get('/:doctorId/availability', async (req, res, next) => {
 
     const fromDt = parseDateStartUtc(from);
     const toDt = parseDateEndUtc(to);
+    const lowerBound = new Date(Math.max(fromDt.getTime(), Date.now()));
 
     const slots = await AvailabilitySlotModel.find({
       doctorId: new mongoose.Types.ObjectId(doctorId),
       status: 'available',
-      startAt: { $gte: fromDt, $lte: toDt }
+      startAt: { $gte: lowerBound, $lte: toDt }
     })
       .sort({ startAt: 1 })
       .limit(2000);

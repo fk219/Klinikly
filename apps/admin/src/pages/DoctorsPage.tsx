@@ -72,22 +72,22 @@ export const DoctorsPage: FC = () => {
 
   const field = (label: string, key: keyof DoctorInput, type = 'text', required = false) => (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">{label}{required && <span className="text-red-500 ml-0.5">*</span>}</label>
+      <label className="block text-sm font-medium text-ink mb-1">{label}{required && <span className="text-red-500 ml-0.5">*</span>}</label>
       <input
         type={type} required={required}
         value={(form[key] as string | number | undefined) ?? ''}
         onChange={e => setForm(prev => ({ ...prev, [key]: e.target.value }))}
-        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+        className="w-full px-3 py-2 border border-line text-sm focus:outline-none focus:border-pine focus:outline-none"
       />
     </div>
   );
 
   return (
-    <div className="p-8">
+    <div className="admin-page">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Doctors</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{doctors.length} doctor{doctors.length !== 1 ? 's' : ''} in your hospital</p>
+          <h1 className="admin-title">Doctors</h1>
+          <p className="text-sm text-muted mt-0.5">{doctors.length} doctor{doctors.length !== 1 ? 's' : ''} in your hospital</p>
         </div>
         <Button onClick={openCreate}>
           <Plus className="h-4 w-4 mr-1.5" /> Add Doctor
@@ -95,44 +95,44 @@ export const DoctorsPage: FC = () => {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-16"><div className="w-8 h-8 border-4 border-teal-600 border-t-transparent rounded-full animate-spin" /></div>
+        <div className="flex justify-center py-16"><div className="w-8 h-8 border-4 border-pine border-t-transparent rounded-full animate-spin" /></div>
       ) : doctors.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 py-16 text-center">
-          <p className="text-gray-500 mb-4">No doctors yet. Add your first doctor to get started.</p>
+        <div className="bg-white border border-line py-16 text-center">
+          <p className="text-muted mb-4">No doctors yet. Add your first doctor to get started.</p>
           <Button onClick={openCreate}><Plus className="h-4 w-4 mr-1.5" /> Add Doctor</Button>
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {doctors.map(d => (
-            <div key={d.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+            <div key={d.id} className="bg-white border border-line overflow-hidden hover:border-pine transition-colors">
               <div className="flex items-start gap-4 p-5">
                 {d.avatarUrl ? (
                   <img src={d.avatarUrl} alt={d.name} className="w-14 h-14 rounded-full object-cover flex-shrink-0" />
                 ) : (
-                  <div className="w-14 h-14 rounded-full bg-teal-100 flex items-center justify-center flex-shrink-0">
-                    <span className="text-xl font-bold text-teal-500">{d.name.charAt(0)}</span>
+                  <div className="w-14 h-14 rounded-full bg-sage flex items-center justify-center flex-shrink-0">
+                    <span className="text-xl font-bold text-pine">{d.name.replace(/^Dr\.?\s+/i, '').charAt(0)}</span>
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">
-                    <h3 className="font-semibold text-gray-900 truncate">{d.name}</h3>
+                    <h3 className="font-semibold text-ink truncate">{d.name}</h3>
                     <Badge variant={d.active ? 'green' : 'gray'}>{d.active ? 'Active' : 'Inactive'}</Badge>
                   </div>
-                  <p className="text-sm text-teal-600 font-medium mt-0.5">{d.specialty}</p>
-                  <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                  <p className="text-sm text-pine font-medium mt-0.5">{d.specialty}</p>
+                  <div className="flex items-center gap-3 mt-2 text-xs text-muted">
                     {d.rating && <span className="flex items-center gap-1"><Star className="h-3 w-3 text-yellow-400 fill-current" />{d.rating}</span>}
                     {d.experience && <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{d.experience}y</span>}
                     <span className="flex items-center gap-1"><DollarSign className="h-3 w-3" />${d.consultationFee}</span>
                   </div>
-                  <p className="text-xs text-gray-500 mt-2 line-clamp-2">{d.bio}</p>
+                  <p className="text-xs text-muted mt-2 line-clamp-2">{d.bio}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2 px-5 py-3 bg-gray-50 border-t border-gray-100">
+              <div className="flex items-center gap-2 px-5 py-3 bg-stone/40 border-t border-line">
                 <Button variant="outline" size="sm" onClick={() => openEdit(d)}>
                   <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => void toggleActive(d)}>
-                  {d.active ? <ToggleRight className="h-4 w-4 mr-1 text-green-500" /> : <ToggleLeft className="h-4 w-4 mr-1 text-gray-400" />}
+                  {d.active ? <ToggleRight className="h-4 w-4 mr-1 text-green-500" /> : <ToggleLeft className="h-4 w-4 mr-1 text-muted" />}
                   {d.active ? 'Deactivate' : 'Activate'}
                 </Button>
               </div>
@@ -148,9 +148,9 @@ export const DoctorsPage: FC = () => {
             {field('Specialty', 'specialty', 'text', true)}
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Bio <span className="text-red-500">*</span></label>
+            <label className="block text-sm font-medium text-ink mb-1">Bio <span className="text-red-500">*</span></label>
             <textarea required rows={3} value={form.bio} onChange={e => setForm(p => ({ ...p, bio: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" />
+              className="w-full px-3 py-2 border border-line text-sm focus:outline-none focus:border-pine focus:outline-none" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             {field('Education', 'education')}
@@ -160,7 +160,7 @@ export const DoctorsPage: FC = () => {
             {field('Consultation Fee ($)', 'consultationFee', 'number', true)}
             {field('Avatar URL', 'avatarUrl')}
           </div>
-          {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
+          {error && <p className="text-sm text-coral bg-[#F7ECE6] px-3 py-2 rounded-lg">{error}</p>}
           <div className="flex justify-end gap-3 pt-2">
             <Button type="button" variant="outline" onClick={() => setShowModal(false)}>Cancel</Button>
             <Button type="submit" loading={saving}>{editing ? 'Save Changes' : 'Create Doctor'}</Button>

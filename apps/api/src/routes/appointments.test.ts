@@ -70,7 +70,7 @@ describe('appointments', () => {
       active: true
     });
 
-    const startAt = new Date('2026-05-04T09:00:00.000Z');
+    const startAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
     await AvailabilitySlotModel.create({
       hospitalId: hospital._id,
       doctorId: doctor._id,
@@ -117,7 +117,7 @@ describe('appointments', () => {
       active: true
     });
 
-    const startAt = new Date('2026-05-04T09:00:00.000Z');
+    const startAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
     await AvailabilitySlotModel.create({
       hospitalId: hospital._id,
       doctorId: doctor._id,
@@ -144,6 +144,79 @@ describe('appointments', () => {
 
     const slot = await AvailabilitySlotModel.findOne({ doctorId: doctor._id, startAt });
     expect(slot?.status).toBe('available');
+  });
+
+  it('rejects a booking for a time that has already passed', async () => {
+    const { createAccessToken } = await import('../auth/tokens');
+
+    const hospital = await HospitalModel.create({ name: 'City Care Hospital', slug: 'city-care', status: 'active' });
+    const patient = await UserModel.create({
+      email: 'past@example.com',
+      passwordHash: 'hash',
+      name: 'Patient',
+      role: 'patient'
+    });
+    const doctor = await DoctorModel.create({
+      hospitalId: hospital._id,
+      name: 'Dr Past',
+      specialty: 'Cardiology',
+      bio: 'Bio',
+      consultationFee: 100,
+      rating: 4.9,
+      active: true
+    });
+
+    const startAt = new Date(Date.now() - 60 * 60 * 1000);
+    await AvailabilitySlotModel.create({
+      hospitalId: hospital._id,
+      doctorId: doctor._id,
+      startAt,
+      status: 'available',
+      source: 'generated'
+    });
+
+    const token = createAccessToken({ userId: patient._id.toString(), role: 'patient' });
+    const response = await request(app)
+      .post('/appointments')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ doctorId: doctor._id.toString(), slotStartAt: startAt.toISOString(), reason: 'Checkup' });
+
+    expect(response.status).toBe(400);
+    expect(await AppointmentModel.countDocuments({ doctorId: doctor._id })).toBe(0);
+
+    const slot = await AvailabilitySlotModel.findOne({ doctorId: doctor._id, startAt });
+    expect(slot?.status).toBe('available');
+  });
+
+  it('does not expose slots that have already passed', async () => {
+    const hospital = await HospitalModel.create({ name: 'City Care Hospital', slug: 'city-care', status: 'active' });
+    const doctor = await DoctorModel.create({
+      hospitalId: hospital._id,
+      name: 'Dr Now',
+      specialty: 'Neurology',
+      bio: 'Bio',
+      consultationFee: 150,
+      rating: 4.8,
+      active: true
+    });
+
+    const past = new Date(Date.now() - 60 * 60 * 1000);
+    const future = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await AvailabilitySlotModel.create([
+      { hospitalId: hospital._id, doctorId: doctor._id, startAt: past, status: 'available', source: 'generated' },
+      { hospitalId: hospital._id, doctorId: doctor._id, startAt: future, status: 'available', source: 'generated' }
+    ]);
+
+    const from = new Date().toISOString().slice(0, 10);
+    const to = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const response = await request(app).get(
+      `/doctors/${doctor._id.toString()}/availability?from=${from}&to=${to}`
+    );
+
+    expect(response.status).toBe(200);
+    const starts = response.body.data.items.map((slot: { startAt: string }) => slot.startAt);
+    expect(starts).toContain(future.toISOString());
+    expect(starts).not.toContain(past.toISOString());
   });
 });
 

@@ -5,7 +5,7 @@ import { AppointmentModel } from '../db/models/Appointment';
 import { AvailabilitySlotModel } from '../db/models/AvailabilitySlot';
 import { DoctorModel } from '../db/models/Doctor';
 import { UserModel } from '../db/models/User';
-import { conflict, notFound } from '../http/errors';
+import { badRequest, conflict, notFound } from '../http/errors';
 import { requireAuth, requireRole } from '../http/middleware/auth';
 
 export const appointmentsRouter = Router();
@@ -27,6 +27,9 @@ appointmentsRouter.post('/', async (req, res, next) => {
     if (!doctor) return next(notFound());
 
     const startAt = new Date(input.slotStartAt);
+    if (startAt.getTime() <= Date.now()) {
+      return next(badRequest('Slot time has already passed'));
+    }
 
     const slot = await AvailabilitySlotModel.findOneAndUpdate(
       { doctorId: doctor._id, startAt, status: 'available' },
