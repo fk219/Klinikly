@@ -52,4 +52,26 @@ describe('api client', () => {
       'http://localhost:3001/health'
     ]);
   });
+
+  it('calls fetch as a standalone function, not as a config method', async () => {
+    const strictFetch = function (this: unknown) {
+      if (this !== undefined) throw new TypeError('Illegal invocation');
+      return Promise.resolve({
+        status: 200,
+        ok: true,
+        json: async () => ({ data: { ok: true } })
+      } as Response);
+    } as unknown as typeof fetch;
+
+    const api = createApiClient({
+      baseUrl: 'http://localhost:3001',
+      fetchImpl: strictFetch,
+      getAccessToken: () => null,
+      setAccessToken: () => {},
+      clearAccessToken: () => {}
+    });
+
+    const res = await api.get<{ ok: boolean }>('/health');
+    expect('data' in res && res.data.ok).toBe(true);
+  });
 });

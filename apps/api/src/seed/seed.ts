@@ -10,6 +10,60 @@ import { generateSlots } from '../availability/generateSlots';
 const slugify = (value: string) =>
   value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
+type SeedDoctor = {
+  name: string;
+  specialty: string;
+  bio: string;
+  education: string;
+  experience: number;
+  consultationFee: number;
+  rating: number;
+  avatarUrl?: string;
+};
+
+const doctorSets: Record<string, SeedDoctor[]> = {
+  'city-care-hospital': [
+    {
+      name: 'Dr. Sarah Johnson',
+      specialty: 'Cardiology',
+      bio: 'Cardiologist focused on preventive care and cardiac imaging.',
+      education: 'MD, Harvard Medical School',
+      experience: 15,
+      consultationFee: 200,
+      rating: 4.9
+    },
+    {
+      name: 'Dr. Michael Chen',
+      specialty: 'Neurology',
+      bio: 'Neurologist specializing in epilepsy and movement disorders.',
+      education: 'MD, Stanford University',
+      experience: 12,
+      consultationFee: 250,
+      rating: 4.8
+    }
+  ],
+  'green-valley-clinic': [
+    {
+      name: 'Dr. Priya Nair',
+      specialty: 'Dermatology',
+      bio: 'Dermatologist focused on inflammatory skin conditions and pediatric care.',
+      education: 'MD, AIIMS Delhi',
+      experience: 9,
+      consultationFee: 180,
+      rating: 4.7
+    },
+    {
+      name: 'Dr. Daniel Okafor',
+      specialty: 'Orthopedics',
+      bio: 'Orthopedic surgeon focused on sports injuries and joint replacement.',
+      education: 'MD, Johns Hopkins University',
+      experience: 14,
+      consultationFee: 300,
+      rating: 4.8
+    }
+  ]
+};
+
 // Generate slots for the next 30 days from today
 const getDateRange = () => {
   const now = new Date();
@@ -20,6 +74,8 @@ const getDateRange = () => {
 };
 
 export const seed = async () => {
+  await DoctorModel.updateMany({}, { $unset: { avatarUrl: '' } });
+
   const hospitals = [
     { name: 'City Care Hospital' },
     { name: 'Green Valley Clinic' }
@@ -67,28 +123,7 @@ export const seed = async () => {
       fri: [{ start: '09:00', end: '17:00' }]
     };
 
-    const doctors = [
-      {
-        name: 'Dr. Sarah Johnson',
-        specialty: 'Cardiology',
-        bio: 'Cardiologist focused on preventive care and cardiac imaging.',
-        education: 'MD, Harvard Medical School',
-        experience: 15,
-        consultationFee: 200,
-        rating: 4.9,
-        avatarUrl: 'https://images.pexels.com/photos/5215024/pexels-photo-5215024.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&fit=crop'
-      },
-      {
-        name: 'Dr. Michael Chen',
-        specialty: 'Neurology',
-        bio: 'Neurologist specializing in epilepsy and movement disorders.',
-        education: 'MD, Stanford University',
-        experience: 12,
-        consultationFee: 250,
-        rating: 4.8,
-        avatarUrl: 'https://images.pexels.com/photos/6129967/pexels-photo-6129967.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&fit=crop'
-      }
-    ];
+    const doctors = doctorSets[slug] ?? doctorSets['city-care-hospital'];
 
     const { from, to } = getDateRange();
 

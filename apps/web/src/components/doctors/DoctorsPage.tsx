@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef, useCallback, type FC } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Search, Filter, Star, Clock, DollarSign, ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
+import { isApiError } from '@app/shared';
 import { useAppointments } from '../../contexts/appointmentStore';
+import { apiSearchDoctors } from '../../api/search';
+import { doctorInitial } from '../../utils/doctorInitial';
 import { Doctor } from '../../types';
 import { Button } from '../common/Button';
 import { gsap } from 'gsap';
@@ -43,7 +46,7 @@ const DoctorCard: FC<{ doctor: Doctor; viewMode: 'grid' | 'list' }> = ({ doctor,
           <img src={doctor.avatarUrl} alt={doctor.name} className="w-20 h-20 rounded-xl object-cover flex-shrink-0" />
         ) : (
           <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-teal-100 to-emerald-100 flex items-center justify-center flex-shrink-0">
-            <span className="text-2xl font-bold text-teal-400">{doctor.name.charAt(0)}</span>
+            <span className="text-2xl font-bold text-teal-400">{doctorInitial(doctor.name)}</span>
           </div>
         )}
         <div className="flex-1 min-w-0">
@@ -56,13 +59,13 @@ const DoctorCard: FC<{ doctor: Doctor; viewMode: 'grid' | 'list' }> = ({ doctor,
             </div>
             <div className="flex items-center gap-1 bg-white border border-gray-200 px-2.5 py-1 rounded-full flex-shrink-0">
               <Star className="h-3.5 w-3.5 text-yellow-400 fill-current" />
-              <span className="text-sm font-semibold">{doctor.rating ?? '—'}</span>
+              <span className="text-sm font-semibold">{doctor.rating ?? 'Not rated'}</span>
             </div>
           </div>
           <p className="text-gray-500 text-sm mt-2 line-clamp-2">{doctor.bio}</p>
           <div className="flex items-center justify-between mt-3">
             <div className="flex items-center gap-4 text-sm text-gray-500">
-              <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5 text-teal-500" />{doctor.experience ? `${doctor.experience} yrs` : '—'}</span>
+              <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5 text-teal-500" />{doctor.experience ? `${doctor.experience} yrs` : 'Not listed'}</span>
               <span className="flex items-center gap-1"><DollarSign className="h-3.5 w-3.5 text-teal-500" />${doctor.consultationFee}</span>
             </div>
             <div className="flex gap-2">
@@ -85,12 +88,12 @@ const DoctorCard: FC<{ doctor: Doctor; viewMode: 'grid' | 'list' }> = ({ doctor,
           <img src={doctor.avatarUrl} alt={doctor.name} className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-500" />
         ) : (
           <div className="w-full h-48 bg-gradient-to-br from-teal-100 to-emerald-100 flex items-center justify-center">
-            <span className="text-5xl font-bold text-teal-300">{doctor.name.charAt(0)}</span>
+            <span className="text-5xl font-bold text-teal-300">{doctorInitial(doctor.name)}</span>
           </div>
         )}
         <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full flex items-center gap-1">
           <Star className="h-4 w-4 text-yellow-400 fill-current" />
-          <span className="text-sm font-semibold">{doctor.rating ?? '—'}</span>
+          <span className="text-sm font-semibold">{doctor.rating ?? 'Not rated'}</span>
         </div>
         <div className="absolute bottom-4 left-4 bg-gradient-to-r from-teal-600 to-emerald-600 text-white px-3 py-1 rounded-full text-sm font-medium">
           {doctor.specialty}
@@ -99,7 +102,7 @@ const DoctorCard: FC<{ doctor: Doctor; viewMode: 'grid' | 'list' }> = ({ doctor,
       <div className="p-6">
         <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-teal-600 transition-colors">{doctor.name}</h3>
         <div className="flex items-center gap-4 text-sm text-gray-600 mb-4">
-          <span className="flex items-center gap-1"><Clock className="h-4 w-4 text-teal-500" />{doctor.experience ? `${doctor.experience} yrs` : '—'}</span>
+          <span className="flex items-center gap-1"><Clock className="h-4 w-4 text-teal-500" />{doctor.experience ? `${doctor.experience} yrs` : 'Not listed'}</span>
           <span className="flex items-center gap-1"><DollarSign className="h-4 w-4 text-teal-500" />${doctor.consultationFee}</span>
         </div>
         <p className="text-gray-600 text-sm mb-4 line-clamp-3 leading-relaxed">{doctor.bio}</p>
@@ -177,8 +180,11 @@ const Pagination: FC<{
 // ── Main page ──────────────────────────────────────────────────────────────────
 export const DoctorsPage: FC = () => {
   const { doctors, doctorsMeta, doctorsLoading, refreshDoctors } = useAppointments();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const specialtyParam = searchParams.get('specialty') ?? '';
+  const initialSpecialty = new URLSearchParams(window.location.search).get('specialty') ?? '';
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedSpecialty, setSelectedSpecialty] = useState('');
+  const [selectedSpecialty, setSelectedSpecialty] = useState(initialSpecialty || specialtyParam);
   const [sortBy, setSortBy] = useState('rating');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [currentPage, setCurrentPage] = useState(1);
@@ -197,20 +203,29 @@ export const DoctorsPage: FC = () => {
     });
   }, [debouncedSearch, selectedSpecialty, currentPage]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Keep the filter in sync when a specialty link changes the URL
+  useEffect(() => {
+    setSelectedSpecialty(specialtyParam);
+  }, [specialtyParam]);
+
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [debouncedSearch, selectedSpecialty]);
 
-  // Populate specialty dropdown from unfiltered fetch
+  // Load the complete specialty list once, independently of the active filter
   useEffect(() => {
-    if (!selectedSpecialty && !debouncedSearch) {
-      setAllSpecialties(prev => {
-        const merged = Array.from(new Set([...prev, ...doctors.map(d => d.specialty)])).sort();
-        return merged;
-      });
-    }
-  }, [doctors, selectedSpecialty, debouncedSearch]);
+    let active = true;
+
+    void apiSearchDoctors({ page: 1, limit: 50 }).then((res) => {
+      if (!active || isApiError(res)) return;
+      setAllSpecialties(Array.from(new Set(res.data.items.map((doctor) => doctor.specialty))).sort());
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // Animate cards when new results arrive
   useEffect(() => {
@@ -229,12 +244,22 @@ export const DoctorsPage: FC = () => {
     return a.name.localeCompare(b.name);
   });
 
+  const handleSpecialtyChange = (value: string) => {
+    setSelectedSpecialty(value);
+
+    const next = new URLSearchParams(searchParams);
+    if (value) next.set('specialty', value);
+    else next.delete('specialty');
+    setSearchParams(next, { replace: true });
+  };
+
   const handleClearFilters = useCallback(() => {
     setSearchTerm('');
     setSelectedSpecialty('');
     setSortBy('rating');
     setCurrentPage(1);
-  }, []);
+    setSearchParams(new URLSearchParams(), { replace: true });
+  }, [setSearchParams]);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -255,7 +280,7 @@ export const DoctorsPage: FC = () => {
             Find Your Perfect Doctor
           </h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Connect with world-class specialists and book appointments instantly
+            Compare specialists and reserve a slot from their live schedules
           </p>
         </div>
 
@@ -276,7 +301,7 @@ export const DoctorsPage: FC = () => {
               <Filter className="h-5 w-5 text-gray-400 absolute left-4 top-3.5 pointer-events-none" />
               <select
                 value={selectedSpecialty}
-                onChange={e => setSelectedSpecialty(e.target.value)}
+                onChange={e => handleSpecialtyChange(e.target.value)}
                 className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent appearance-none bg-white/50"
               >
                 <option value="">All Specialties</option>

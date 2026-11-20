@@ -5,7 +5,6 @@ import {
   LogOut,
   Calendar,
   Stethoscope,
-  Bell,
   Menu,
   X,
 } from 'lucide-react';
@@ -18,30 +17,24 @@ export const Header: FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
   const logoRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (headerRef.current && logoRef.current) {
-      gsap.fromTo(
-        headerRef.current,
-        { y: -100, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.8, ease: 'power3.out' }
-      );
-      gsap.fromTo(
-        logoRef.current,
-        { scale: 0, rotation: -180 },
-        { scale: 1, rotation: 0, duration: 1, ease: 'back.out(1.7)', delay: 0.3 }
-      );
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    if (headerRef.current) {
+      gsap.fromTo(headerRef.current, { y: -24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: 'power2.out' });
+    }
+    if (logoRef.current) {
+      gsap.fromTo(logoRef.current, { opacity: 0 }, { opacity: 1, duration: 0.35, ease: 'power2.out' });
     }
   }, []);
 
   // Close menus on route change
   useEffect(() => {
     setShowUserMenu(false);
-    setShowNotifications(false);
     setShowMobileMenu(false);
   }, [location.pathname]);
 
@@ -98,29 +91,6 @@ export const Header: FC = () => {
 
           {/* User Actions */}
           <div className="flex items-center space-x-3">
-            {user && (
-              <div className="relative">
-                <button
-                  onClick={() => setShowNotifications(!showNotifications)}
-                  className="p-2 text-gray-600 hover:text-teal-600 transition-colors rounded-full hover:bg-teal-50"
-                  aria-label="Notifications"
-                >
-                  <Bell className="h-5 w-5" />
-                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
-                </button>
-                {showNotifications && (
-                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl py-2 z-50 border border-gray-100">
-                    <div className="px-4 py-2 border-b border-gray-100">
-                      <h3 className="font-semibold text-gray-900">Notifications</h3>
-                    </div>
-                    <div className="px-4 py-6 text-center text-sm text-gray-500">
-                      No new notifications
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
             {user ? (
               <div className="relative">
                 <button

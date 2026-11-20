@@ -17,6 +17,8 @@ export const createApiClient = (params: {
   setAccessToken: (token: string) => void;
   clearAccessToken: () => void;
 }): ApiClient => {
+  const { fetchImpl } = params;
+
   const request = async <T,>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<ApiResponse<T>> => {
     const url = `${params.baseUrl}${path}`;
 
@@ -25,7 +27,7 @@ export const createApiClient = (params: {
       const token = params.getAccessToken();
       if (token) headers.set('authorization', `Bearer ${token}`);
 
-      return params.fetchImpl(url, {
+      return fetchImpl(url, {
         method,
         headers,
         body: body === undefined ? undefined : JSON.stringify(body),
@@ -38,7 +40,7 @@ export const createApiClient = (params: {
       return (await res1.json()) as ApiResponse<T>;
     }
 
-    const refreshed = await params.fetchImpl(`${params.baseUrl}/auth/refresh`, {
+    const refreshed = await fetchImpl(`${params.baseUrl}/auth/refresh`, {
       method: 'POST',
       headers: toHeaders({ 'content-type': 'application/json' }),
       credentials: 'include'

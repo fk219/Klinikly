@@ -26,15 +26,13 @@ export const AuthPage: FC = () => {
   const logoRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (formRef.current && logoRef.current) {
-      gsap.fromTo(formRef.current,
-        { y: 50, opacity: 0, scale: 0.9 },
-        { y: 0, opacity: 1, scale: 1, duration: 0.8, ease: 'back.out(1.7)' }
-      );
-      gsap.fromTo(logoRef.current,
-        { scale: 0, rotation: -180 },
-        { scale: 1, rotation: 0, duration: 1, ease: 'back.out(1.7)', delay: 0.2 }
-      );
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    if (formRef.current) {
+      gsap.fromTo(formRef.current, { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: 'power2.out' });
+    }
+    if (logoRef.current) {
+      gsap.fromTo(logoRef.current, { scale: 0.94 }, { scale: 1, duration: 0.35, ease: 'power2.out' });
     }
   }, [isLogin]);
 
@@ -55,16 +53,16 @@ export const AuthPage: FC = () => {
         return;
       }
       const success = await register({
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        phone: formData.phone.trim() || undefined,
         password: formData.password
       });
       if (success) {
         toast.success('Account created successfully!');
         navigate(from, { replace: true });
       } else {
-        toast.error('Registration failed. Email may already be in use.');
+        toast.error('Registration failed. Please check your details and try again.');
       }
     }
   };
@@ -74,21 +72,14 @@ export const AuthPage: FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-emerald-50 to-cyan-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-      <div className="absolute inset-0">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-teal-200/30 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-emerald-200/30 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-cyan-200/20 rounded-full blur-2xl animate-pulse delay-500"></div>
-      </div>
-
-      <div ref={formRef} className="max-w-md w-full space-y-8 relative z-10">
+    <div className="min-h-screen bg-gray-50 flex items-start justify-center px-4 pb-16 pt-24 sm:px-6 lg:px-8">
+      <div ref={formRef} className="w-full max-w-md space-y-8 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
         <div className="text-center">
           <div ref={logoRef} className="flex justify-center">
             <div className="relative">
-              <div className="w-16 h-16 bg-gradient-to-r from-teal-600 to-emerald-600 rounded-2xl flex items-center justify-center shadow-2xl">
+              <div className="w-16 h-16 bg-gradient-to-r from-teal-600 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg">
                 <Stethoscope className="h-8 w-8 text-white" />
               </div>
-              <div className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-400 rounded-full animate-pulse"></div>
             </div>
           </div>
           <h2 className="mt-6 text-3xl font-bold bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent">
@@ -113,7 +104,7 @@ export const AuthPage: FC = () => {
                   <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
                   <div className="relative">
                     <input id="name" name="name" type="text" required value={formData.name} onChange={handleInputChange}
-                      className="appearance-none relative block w-full px-4 py-3 pl-12 border border-gray-200 placeholder-gray-500 text-gray-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white/70 backdrop-blur-sm transition-all"
+                      className="appearance-none relative block w-full px-4 py-3 pl-12 border border-gray-200 placeholder-gray-500 text-gray-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white transition-all"
                       placeholder="Enter your full name" />
                     <User className="h-5 w-5 text-gray-400 absolute left-4 top-3.5" />
                   </div>
@@ -122,7 +113,7 @@ export const AuthPage: FC = () => {
                   <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
                   <div className="relative">
                     <input id="phone" name="phone" type="tel" value={formData.phone} onChange={handleInputChange}
-                      className="appearance-none relative block w-full px-4 py-3 pl-12 border border-gray-200 placeholder-gray-500 text-gray-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white/70 backdrop-blur-sm transition-all"
+                      className="appearance-none relative block w-full px-4 py-3 pl-12 border border-gray-200 placeholder-gray-500 text-gray-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white transition-all"
                       placeholder="Enter your phone number (optional)" />
                     <Phone className="h-5 w-5 text-gray-400 absolute left-4 top-3.5" />
                   </div>
@@ -134,7 +125,7 @@ export const AuthPage: FC = () => {
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
               <div className="relative">
                 <input id="email" name="email" type="email" autoComplete="email" required value={formData.email} onChange={handleInputChange}
-                  className="appearance-none relative block w-full px-4 py-3 pl-12 border border-gray-200 placeholder-gray-500 text-gray-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white/70 backdrop-blur-sm transition-all"
+                  className="appearance-none relative block w-full px-4 py-3 pl-12 border border-gray-200 placeholder-gray-500 text-gray-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white transition-all"
                   placeholder="Enter your email address" />
                 <Mail className="h-5 w-5 text-gray-400 absolute left-4 top-3.5" />
               </div>
@@ -145,7 +136,7 @@ export const AuthPage: FC = () => {
               <div className="relative">
                 <input id="password" name="password" type={showPassword ? 'text' : 'password'}
                   autoComplete={isLogin ? 'current-password' : 'new-password'} required value={formData.password} onChange={handleInputChange}
-                  className="appearance-none relative block w-full px-4 py-3 pl-12 pr-12 border border-gray-200 placeholder-gray-500 text-gray-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white/70 backdrop-blur-sm transition-all"
+                  className="appearance-none relative block w-full px-4 py-3 pl-12 pr-12 border border-gray-200 placeholder-gray-500 text-gray-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white transition-all"
                   placeholder="Enter your password" />
                 <Lock className="h-5 w-5 text-gray-400 absolute left-4 top-3.5" />
                 <button type="button" onClick={() => setShowPassword(!showPassword)}
@@ -161,7 +152,7 @@ export const AuthPage: FC = () => {
                 <div className="relative">
                   <input id="confirmPassword" name="confirmPassword" type={showConfirmPassword ? 'text' : 'password'}
                     autoComplete="new-password" required value={formData.confirmPassword} onChange={handleInputChange}
-                    className="appearance-none relative block w-full px-4 py-3 pl-12 pr-12 border border-gray-200 placeholder-gray-500 text-gray-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white/70 backdrop-blur-sm transition-all"
+                    className="appearance-none relative block w-full px-4 py-3 pl-12 pr-12 border border-gray-200 placeholder-gray-500 text-gray-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white transition-all"
                     placeholder="Confirm your password" />
                   <Lock className="h-5 w-5 text-gray-400 absolute left-4 top-3.5" />
                   <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)}
@@ -179,15 +170,6 @@ export const AuthPage: FC = () => {
             </Button>
           </div>
 
-          {isLogin && (
-            <div className="text-center bg-teal-50 p-4 rounded-xl border border-teal-200">
-              <p className="text-sm text-teal-700 font-medium mb-2">Demo Credentials</p>
-              <p className="text-xs text-teal-600">
-                Patient: register a new account<br />
-                Admin: admin@city-care-hospital.example.com / Admin123!
-              </p>
-            </div>
-          )}
         </form>
       </div>
     </div>

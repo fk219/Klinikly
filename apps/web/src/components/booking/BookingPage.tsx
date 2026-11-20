@@ -7,6 +7,7 @@ import { useAuth } from '../../contexts/authStore';
 import { Button } from '../common/Button';
 import { Modal } from '../common/Modal';
 import { Doctor } from '../../types';
+import { doctorInitial } from '../../utils/doctorInitial';
 
 export const BookingPage: FC = () => {
   const { doctorId } = useParams<{ doctorId: string }>();
@@ -108,7 +109,7 @@ export const BookingPage: FC = () => {
     if (ok) {
       setShowConfirmation(true);
     } else {
-      toast.error('Booking failed — the slot may no longer be available. Please choose another time.');
+      toast.error('Booking failed. The slot may no longer be available. Please choose another time.');
     }
   };
 
@@ -148,7 +149,7 @@ export const BookingPage: FC = () => {
                   <img src={doctor.avatarUrl} alt={doctor.name} className="w-24 h-24 rounded-full mx-auto mb-4 object-cover" />
                 ) : (
                   <div className="w-24 h-24 rounded-full mx-auto mb-4 bg-gradient-to-br from-teal-100 to-emerald-100 flex items-center justify-center">
-                    <span className="text-3xl font-bold text-teal-400">{doctor.name.charAt(0)}</span>
+                    <span className="text-3xl font-bold text-teal-400">{doctorInitial(doctor.name)}</span>
                   </div>
                 )}
                 <h3 className="text-xl font-semibold text-gray-900">{doctor.name}</h3>
@@ -157,7 +158,7 @@ export const BookingPage: FC = () => {
               <div className="space-y-4 text-sm">
                 <div className="flex items-center">
                   <User className="h-4 w-4 text-gray-400 mr-2" />
-                  <span>{doctor.experience ? `${doctor.experience} years experience` : 'Experience —'}</span>
+                  <span>{doctor.experience ? `${doctor.experience} years experience` : 'Experience not listed'}</span>
                 </div>
                 <div className="flex items-center">
                   <Clock className="h-4 w-4 text-gray-400 mr-2" />

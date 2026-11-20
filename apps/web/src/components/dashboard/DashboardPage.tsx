@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/authStore';
 import { useAppointments } from '../../contexts/appointmentStore';
 import { Button } from '../common/Button';
 import { Appointment, Doctor } from '../../types';
+import { doctorInitial } from '../../utils/doctorInitial';
 
 export const DashboardPage: FC = () => {
   const navigate = useNavigate();
@@ -122,7 +123,7 @@ export const DashboardPage: FC = () => {
               <img src={doctor.avatarUrl} alt={doctor.name} className="w-16 h-16 rounded-full object-cover" />
             ) : (
               <div className="w-16 h-16 rounded-full bg-gradient-to-br from-teal-100 to-emerald-100 flex items-center justify-center">
-                <span className="text-xl font-bold text-teal-400">{doctor.name.charAt(0)}</span>
+                <span className="text-xl font-bold text-teal-400">{doctorInitial(doctor.name)}</span>
               </div>
             )}
             <div className="flex-1">

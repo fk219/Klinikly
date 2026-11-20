@@ -41,8 +41,16 @@ jobs:
           JWT_ACCESS_SECRET: ci-access-secret-32chars-minimum
           JWT_REFRESH_SECRET: ci-refresh-secret-32chars-minimum
 
+      - name: Build shared package
+        run: npm run build:shared
+
       - name: Build web
         run: npm run build:web
+        env:
+          VITE_API_URL: http://localhost:3001
+
+      - name: Build admin
+        run: npm run build:admin
         env:
           VITE_API_URL: http://localhost:3001
 

@@ -12,22 +12,15 @@ export const AppointmentProvider = ({ children }: { children: ReactNode }) => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [doctorsMeta, setDoctorsMeta] = useState({ page: 1, limit: PAGE_SIZE, total: 0 });
-  const [doctorsLoading, setDoctorsLoading] = useState(false);
+  const [doctorsLoading, setDoctorsLoading] = useState(true);
   const [hospitals, setHospitals] = useState<Hospital[]>([]);
   const { user } = useAuth();
   const userId = user?.id;
 
   useEffect(() => {
     const run = async () => {
-      const [h, d] = await Promise.all([
-        apiSearchHospitals({ page: 1, limit: 200 }),
-        apiSearchDoctors({ page: 1, limit: PAGE_SIZE })
-      ]);
-      if (!isApiError(h)) setHospitals(h.data.items);
-      if (!isApiError(d)) {
-        setDoctors(d.data.items);
-        setDoctorsMeta({ page: d.data.page, limit: d.data.limit, total: d.data.total });
-      }
+      const res = await apiSearchHospitals({ page: 1, limit: 50 });
+      if (!isApiError(res)) setHospitals(res.data.items);
     };
     void run();
   }, []);
@@ -54,7 +47,7 @@ export const AppointmentProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const refreshHospitals = async (params?: { query?: string }) => {
-    const res = await apiSearchHospitals({ ...params, page: 1, limit: 200 });
+    const res = await apiSearchHospitals({ ...params, page: 1, limit: 50 });
     if (isApiError(res)) return;
     setHospitals(res.data.items);
   };

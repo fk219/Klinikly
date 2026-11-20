@@ -27,17 +27,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return false;
     }
 
-    const res = await apiLogin({ email, password });
-    if (isApiError(res)) {
+    try {
+      const res = await apiLogin({ email, password });
+      if (isApiError(res)) {
+        setLoading(false);
+        return false;
+      }
+
+      localStorage.setItem(tokenKey, res.data.accessToken);
+      localStorage.setItem(userKey, JSON.stringify(res.data.user));
+      setUser(res.data.user);
+      setLoading(false);
+      return true;
+    } catch {
       setLoading(false);
       return false;
     }
-
-    localStorage.setItem(tokenKey, res.data.accessToken);
-    localStorage.setItem(userKey, JSON.stringify(res.data.user));
-    setUser(res.data.user);
-    setLoading(false);
-    return true;
   };
 
   const register = async (userData: {
@@ -48,17 +53,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }): Promise<boolean> => {
     setLoading(true);
 
-    const res = await apiRegister(userData);
-    if (isApiError(res)) {
+    try {
+      const res = await apiRegister(userData);
+      if (isApiError(res)) {
+        setLoading(false);
+        return false;
+      }
+
+      localStorage.setItem(tokenKey, res.data.accessToken);
+      localStorage.setItem(userKey, JSON.stringify(res.data.user));
+      setUser(res.data.user);
+      setLoading(false);
+      return true;
+    } catch {
       setLoading(false);
       return false;
     }
-
-    localStorage.setItem(tokenKey, res.data.accessToken);
-    localStorage.setItem(userKey, JSON.stringify(res.data.user));
-    setUser(res.data.user);
-    setLoading(false);
-    return true;
   };
 
   const logout = async () => {

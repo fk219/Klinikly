@@ -8,6 +8,7 @@ import { isApiError, type Doctor, type Hospital } from '@app/shared';
 import { apiGetDoctor, apiGetDoctorAvailability, apiGetHospital } from '../../api/search';
 import { Button } from '../common/Button';
 import type { DoctorAvailabilityItem } from '../../types';
+import { doctorInitial } from '../../utils/doctorInitial';
 
 // ── Skeleton ───────────────────────────────────────────────────────────────────
 const Skeleton: FC<{ className?: string }> = ({ className = '' }) => (
@@ -116,7 +117,7 @@ export const DoctorDetailPage: FC = () => {
                     <img src={doctor.avatarUrl} alt={doctor.name} className="w-full h-52 object-cover" />
                   ) : (
                     <div className="w-full h-52 bg-gradient-to-br from-teal-100 to-emerald-100 flex items-center justify-center">
-                      <span className="text-7xl font-bold text-teal-300">{doctor.name.charAt(0)}</span>
+                      <span className="text-7xl font-bold text-teal-300">{doctorInitial(doctor.name)}</span>
                     </div>
                   )}
                   <div className="p-6">
