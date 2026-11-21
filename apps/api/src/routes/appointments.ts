@@ -1,12 +1,12 @@
 import { Router } from 'express';
 import mongoose from 'mongoose';
 import { z } from 'zod';
-import { AppointmentModel } from '../db/models/Appointment';
-import { AvailabilitySlotModel } from '../db/models/AvailabilitySlot';
-import { DoctorModel } from '../db/models/Doctor';
-import { UserModel } from '../db/models/User';
-import { badRequest, conflict, notFound } from '../http/errors';
-import { requireAuth, requireRole } from '../http/middleware/auth';
+import { AppointmentModel } from '../db/models/Appointment.js';
+import { AvailabilitySlotModel } from '../db/models/AvailabilitySlot.js';
+import { DoctorModel } from '../db/models/Doctor.js';
+import { UserModel } from '../db/models/User.js';
+import { badRequest, conflict, notFound } from '../http/errors.js';
+import { requireAuth, requireRole } from '../http/middleware/auth.js';
 
 export const appointmentsRouter = Router();
 

@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import mongoose from 'mongoose';
-import { DoctorModel } from '../db/models/Doctor';
-import { HospitalModel } from '../db/models/Hospital';
-import { notFound } from '../http/errors';
-import { requireHospitalAdmin } from '../http/middleware/hospitalAdmin';
+import { DoctorModel } from '../db/models/Doctor.js';
+import { HospitalModel } from '../db/models/Hospital.js';
+import { notFound } from '../http/errors.js';
+import { requireHospitalAdmin } from '../http/middleware/hospitalAdmin.js';
 
 export const adminDoctorsRouter = Router();
 

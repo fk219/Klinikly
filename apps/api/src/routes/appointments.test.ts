@@ -3,11 +3,11 @@ import request from 'supertest';
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import type { Express } from 'express';
-import { HospitalModel } from '../db/models/Hospital';
-import { UserModel } from '../db/models/User';
-import { DoctorModel } from '../db/models/Doctor';
-import { AvailabilitySlotModel } from '../db/models/AvailabilitySlot';
-import { AppointmentModel } from '../db/models/Appointment';
+import { HospitalModel } from '../db/models/Hospital.js';
+import { UserModel } from '../db/models/User.js';
+import { DoctorModel } from '../db/models/Doctor.js';
+import { AvailabilitySlotModel } from '../db/models/AvailabilitySlot.js';
+import { AppointmentModel } from '../db/models/Appointment.js';
 
 let mongo: MongoMemoryServer;
 let app: Express;
@@ -20,7 +20,7 @@ beforeAll(async () => {
   process.env.JWT_ACCESS_SECRET = 'a'.repeat(32);
   process.env.JWT_REFRESH_SECRET = 'b'.repeat(32);
 
-  const mod = await import('../app');
+  const mod = await import('../app.js');
   app = mod.createApp();
 
   await mongoose.connect(uri);
@@ -51,7 +51,7 @@ beforeEach(async () => {
 
 describe('appointments', () => {
   it('books a slot atomically under concurrent requests', async () => {
-    const { createAccessToken } = await import('../auth/tokens');
+    const { createAccessToken } = await import('../auth/tokens.js');
 
     const hospital = await HospitalModel.create({ name: 'City Care Hospital', slug: 'city-care', status: 'active' });
     const patient = await UserModel.create({
@@ -98,7 +98,7 @@ describe('appointments', () => {
   });
 
   it('cancels a scheduled appointment and restores slot availability', async () => {
-    const { createAccessToken } = await import('../auth/tokens');
+    const { createAccessToken } = await import('../auth/tokens.js');
 
     const hospital = await HospitalModel.create({ name: 'City Care Hospital', slug: 'city-care', status: 'active' });
     const patient = await UserModel.create({
@@ -147,7 +147,7 @@ describe('appointments', () => {
   });
 
   it('rejects a booking for a time that has already passed', async () => {
-    const { createAccessToken } = await import('../auth/tokens');
+    const { createAccessToken } = await import('../auth/tokens.js');
 
     const hospital = await HospitalModel.create({ name: 'City Care Hospital', slug: 'city-care', status: 'active' });
     const patient = await UserModel.create({

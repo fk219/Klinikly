@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
-import { env } from '../config';
+import { env } from '../config.js';
 
 export type AccessTokenPayload = {
   userId: string;

@@ -3,8 +3,8 @@ import request from 'supertest';
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import type { Express } from 'express';
-import { HospitalModel } from '../db/models/Hospital';
-import { DoctorModel } from '../db/models/Doctor';
+import { HospitalModel } from '../db/models/Hospital.js';
+import { DoctorModel } from '../db/models/Doctor.js';
 
 let mongo: MongoMemoryServer;
 let app: Express;
@@ -17,7 +17,7 @@ beforeAll(async () => {
   process.env.JWT_ACCESS_SECRET = 'a'.repeat(32);
   process.env.JWT_REFRESH_SECRET = 'b'.repeat(32);
 
-  const mod = await import('../app');
+  const mod = await import('../app.js');
   app = mod.createApp();
 
   await mongoose.connect(uri);

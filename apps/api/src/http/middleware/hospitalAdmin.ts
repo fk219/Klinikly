@@ -1,8 +1,8 @@
 import type { RequestHandler } from 'express';
 import mongoose from 'mongoose';
-import { HospitalAdminModel } from '../../db/models/HospitalAdmin';
-import { requireAuth } from './auth';
-import { forbidden, unauthorized } from '../errors';
+import { HospitalAdminModel } from '../../db/models/HospitalAdmin.js';
+import { requireAuth } from './auth.js';
+import { forbidden, unauthorized } from '../errors.js';
 
 declare module 'express-serve-static-core' {
   interface Request {

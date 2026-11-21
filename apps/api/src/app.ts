@@ -3,17 +3,17 @@ import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
-import { env } from './config';
-import { errorHandler } from './http/middleware/errorHandler';
-import { requestId } from './http/middleware/requestId';
-import { adminAvailabilityRouter } from './routes/adminAvailability';
-import { adminAppointmentsRouter } from './routes/adminAppointments';
-import { adminDoctorsRouter } from './routes/adminDoctors';
-import { appointmentsRouter, meRouter } from './routes/appointments';
-import { authRouter } from './routes/auth';
-import { doctorsRouter } from './routes/doctors';
-import { healthRouter } from './routes/health';
-import { hospitalsRouter } from './routes/hospitals';
+import { env } from './config.js';
+import { errorHandler } from './http/middleware/errorHandler.js';
+import { requestId } from './http/middleware/requestId.js';
+import { adminAvailabilityRouter } from './routes/adminAvailability.js';
+import { adminAppointmentsRouter } from './routes/adminAppointments.js';
+import { adminDoctorsRouter } from './routes/adminDoctors.js';
+import { appointmentsRouter, meRouter } from './routes/appointments.js';
+import { authRouter } from './routes/auth.js';
+import { doctorsRouter } from './routes/doctors.js';
+import { healthRouter } from './routes/health.js';
+import { hospitalsRouter } from './routes/hospitals.js';
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes

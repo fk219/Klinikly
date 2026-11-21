@@ -3,12 +3,12 @@ import request from 'supertest';
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import type { Express } from 'express';
-import { HospitalModel } from '../db/models/Hospital';
-import { UserModel } from '../db/models/User';
-import { HospitalAdminModel } from '../db/models/HospitalAdmin';
-import { DoctorModel } from '../db/models/Doctor';
-import { AvailabilityRuleModel } from '../db/models/AvailabilityRule';
-import { AvailabilitySlotModel } from '../db/models/AvailabilitySlot';
+import { HospitalModel } from '../db/models/Hospital.js';
+import { UserModel } from '../db/models/User.js';
+import { HospitalAdminModel } from '../db/models/HospitalAdmin.js';
+import { DoctorModel } from '../db/models/Doctor.js';
+import { AvailabilityRuleModel } from '../db/models/AvailabilityRule.js';
+import { AvailabilitySlotModel } from '../db/models/AvailabilitySlot.js';
 
 let mongo: MongoMemoryServer;
 let app: Express;
@@ -21,7 +21,7 @@ beforeAll(async () => {
   process.env.JWT_ACCESS_SECRET = 'a'.repeat(32);
   process.env.JWT_REFRESH_SECRET = 'b'.repeat(32);
 
-  const mod = await import('../app');
+  const mod = await import('../app.js');
   app = mod.createApp();
 
   await mongoose.connect(uri);
@@ -54,7 +54,7 @@ beforeEach(async () => {
 
 describe('admin availability', () => {
   it('sets rules and generates slots', async () => {
-    const { createAccessToken } = await import('../auth/tokens');
+    const { createAccessToken } = await import('../auth/tokens.js');
 
     const hospital = await HospitalModel.create({ name: 'City Care Hospital', slug: 'city-care', status: 'active' });
     const adminUser = await UserModel.create({

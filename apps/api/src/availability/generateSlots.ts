@@ -1,4 +1,4 @@
-import type { WeeklyTemplate } from '../db/models/AvailabilityRule';
+import type { WeeklyTemplate } from '../db/models/AvailabilityRule.js';
 
 const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
 

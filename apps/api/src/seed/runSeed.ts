@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
-import { connectDb } from '../db/client';
-import { seed } from './seed';
+import { connectDb } from '../db/client.js';
+import { seed } from './seed.js';
 
 const main = async () => {
   await connectDb();

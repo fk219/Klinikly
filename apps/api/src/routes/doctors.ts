@@ -1,9 +1,9 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import mongoose from 'mongoose';
-import { DoctorModel } from '../db/models/Doctor';
-import { AvailabilitySlotModel } from '../db/models/AvailabilitySlot';
-import { notFound } from '../http/errors';
+import { DoctorModel } from '../db/models/Doctor.js';
+import { AvailabilitySlotModel } from '../db/models/AvailabilitySlot.js';
+import { notFound } from '../http/errors.js';
 
 export const doctorsRouter = Router();
 

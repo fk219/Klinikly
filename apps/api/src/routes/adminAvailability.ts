@@ -1,12 +1,12 @@
 import { Router } from 'express';
 import mongoose from 'mongoose';
 import { z } from 'zod';
-import { AvailabilityRuleModel } from '../db/models/AvailabilityRule';
-import { AvailabilitySlotModel } from '../db/models/AvailabilitySlot';
-import { DoctorModel } from '../db/models/Doctor';
-import { conflict, notFound } from '../http/errors';
-import { requireHospitalAdmin } from '../http/middleware/hospitalAdmin';
-import { generateSlots } from '../availability/generateSlots';
+import { AvailabilityRuleModel } from '../db/models/AvailabilityRule.js';
+import { AvailabilitySlotModel } from '../db/models/AvailabilitySlot.js';
+import { DoctorModel } from '../db/models/Doctor.js';
+import { conflict, notFound } from '../http/errors.js';
+import { requireHospitalAdmin } from '../http/middleware/hospitalAdmin.js';
+import { generateSlots } from '../availability/generateSlots.js';
 
 export const adminAvailabilityRouter = Router();
 

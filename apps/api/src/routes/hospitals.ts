@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import mongoose from 'mongoose';
-import { HospitalModel } from '../db/models/Hospital';
-import { notFound } from '../http/errors';
+import { HospitalModel } from '../db/models/Hospital.js';
+import { notFound } from '../http/errors.js';
 
 export const hospitalsRouter = Router();
 

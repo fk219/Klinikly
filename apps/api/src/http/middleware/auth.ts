@@ -1,7 +1,7 @@
 import type { RequestHandler } from 'express';
 import jwt from 'jsonwebtoken';
-import { env } from '../../config';
-import { forbidden, unauthorized } from '../errors';
+import { env } from '../../config.js';
+import { forbidden, unauthorized } from '../errors.js';
 
 export type AuthUser = {
   userId: string;

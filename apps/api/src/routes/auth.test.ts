@@ -22,7 +22,7 @@ beforeAll(async () => {
   process.env.JWT_ACCESS_TTL = '15m';
   process.env.JWT_REFRESH_TTL = '30d';
 
-  const mod = await import('../app');
+  const mod = await import('../app.js');
   app = mod.createApp();
 
   await mongoose.connect(uri);

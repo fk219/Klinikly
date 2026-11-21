@@ -1,11 +1,11 @@
 import { Router, type Response } from 'express';
 import { z } from 'zod';
-import { createAccessToken, createRefreshToken, hashRefreshToken } from '../auth/tokens';
-import { hashPassword, verifyPassword } from '../auth/password';
-import { conflict, unauthorized } from '../http/errors';
-import { UserModel } from '../db/models/User';
-import { RefreshTokenModel } from '../db/models/RefreshToken';
-import { env } from '../config';
+import { createAccessToken, createRefreshToken, hashRefreshToken } from '../auth/tokens.js';
+import { hashPassword, verifyPassword } from '../auth/password.js';
+import { conflict, unauthorized } from '../http/errors.js';
+import { UserModel } from '../db/models/User.js';
+import { RefreshTokenModel } from '../db/models/RefreshToken.js';
+import { env } from '../config.js';
 
 const refreshCookieName = 'refreshToken';
 

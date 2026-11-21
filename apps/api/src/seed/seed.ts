@@ -1,11 +1,11 @@
-import { hashPassword } from '../auth/password';
-import { HospitalModel } from '../db/models/Hospital';
-import { HospitalAdminModel } from '../db/models/HospitalAdmin';
-import { UserModel } from '../db/models/User';
-import { DoctorModel } from '../db/models/Doctor';
-import { AvailabilityRuleModel } from '../db/models/AvailabilityRule';
-import { AvailabilitySlotModel } from '../db/models/AvailabilitySlot';
-import { generateSlots } from '../availability/generateSlots';
+import { hashPassword } from '../auth/password.js';
+import { HospitalModel } from '../db/models/Hospital.js';
+import { HospitalAdminModel } from '../db/models/HospitalAdmin.js';
+import { UserModel } from '../db/models/User.js';
+import { DoctorModel } from '../db/models/Doctor.js';
+import { AvailabilityRuleModel } from '../db/models/AvailabilityRule.js';
+import { AvailabilitySlotModel } from '../db/models/AvailabilitySlot.js';
+import { generateSlots } from '../availability/generateSlots.js';
 
 const slugify = (value: string) =>
   value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
