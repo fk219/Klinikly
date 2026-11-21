@@ -33,7 +33,7 @@ doctorsRouter.get('/', async (req, res, next) => {
     }
 
     const [items, total] = await Promise.all([
-      DoctorModel.find(filter).sort({ rating: -1, name: 1 }).skip(skip).limit(limit),
+      DoctorModel.find(filter).sort({ name: 1 }).skip(skip).limit(limit),
       DoctorModel.countDocuments(filter)
     ]);
 

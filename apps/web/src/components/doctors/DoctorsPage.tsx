@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, type FC } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Search, ChevronLeft, ChevronRight, Star, ArrowUpRight } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, ArrowUpRight } from 'lucide-react';
 import { isApiError } from '@app/shared';
 import { useAppointments } from '../../contexts/appointmentStore';
 import { apiSearchDoctors } from '../../api/search';
@@ -60,7 +60,6 @@ const DoctorCard: FC<{
           <p className="mt-1 text-sm text-muted">
             {hospitalName ?? 'Hospital listed on profile'}
             {doctor.experience ? ` · ${doctor.experience} yrs` : ''}
-            {doctor.rating ? ` · ${doctor.rating.toFixed(1)} rating` : ''}
           </p>
           <p className="mt-2 line-clamp-1 max-w-2xl text-sm leading-relaxed text-muted">{doctor.bio}</p>
         </div>
@@ -96,12 +95,6 @@ const DoctorCard: FC<{
         <span className="absolute left-4 top-4 font-mono text-[9px] uppercase tracking-[0.16em] opacity-60">
           {String(index + 1).padStart(2, '0')}
         </span>
-        {doctor.rating ? (
-          <span className="absolute right-4 top-4 inline-flex items-center gap-1 bg-white/80 px-2 py-1 font-mono text-[10px] tabular-nums">
-            <Star className="h-3 w-3 fill-current" aria-hidden="true" />
-            {doctor.rating.toFixed(1)}
-          </span>
-        ) : null}
         <span className="absolute bottom-4 left-4 bg-white px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.14em] text-ink">
           {doctor.specialty}
         </span>
@@ -218,7 +211,7 @@ export const DoctorsPage: FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSpecialty, setSelectedSpecialty] = useState(specialtyParam);
   const [selectedHospital, setSelectedHospital] = useState(hospitalParam);
-  const [sortBy, setSortBy] = useState('rating');
+  const [sortBy, setSortBy] = useState('experience');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [currentPage, setCurrentPage] = useState(1);
   const [allSpecialties, setAllSpecialties] = useState<string[]>([]);
@@ -258,7 +251,6 @@ export const DoctorsPage: FC = () => {
   }, []);
 
   const sortedDoctors = [...doctors].sort((a, b) => {
-    if (sortBy === 'rating') return (b.rating ?? 0) - (a.rating ?? 0);
     if (sortBy === 'experience') return (b.experience ?? 0) - (a.experience ?? 0);
     if (sortBy === 'fee') return a.consultationFee - b.consultationFee;
     return a.name.localeCompare(b.name);
@@ -289,7 +281,7 @@ export const DoctorsPage: FC = () => {
     setSearchTerm('');
     setSelectedSpecialty('');
     setSelectedHospital('');
-    setSortBy('rating');
+    setSortBy('experience');
     setCurrentPage(1);
     setSearchParams(new URLSearchParams(), { replace: true });
   }, [setSearchParams]);
@@ -395,7 +387,6 @@ export const DoctorsPage: FC = () => {
               onChange={(event) => setSortBy(event.target.value)}
               className="mt-2 min-h-12 w-full border border-line bg-canvas px-3 text-sm text-ink focus:border-pine focus:outline-none"
             >
-              <option value="rating">Highest rated</option>
               <option value="experience">Most experienced</option>
               <option value="fee">Lowest fee</option>
               <option value="name">Name A–Z</option>

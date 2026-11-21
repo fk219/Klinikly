@@ -44,7 +44,7 @@ Klinikly uses a calm clinical editorial system:
 
 **Patient app**
 - Register or sign in with JWT auth and automatic refresh-token rotation.
-- Search and filter doctors by name, specialty, and hospital; sort by rating, experience, fee, or name.
+- Search and filter doctors by name, specialty, and hospital; sort by experience, fee, or name.
 - Editorial doctor directory with grid and list views.
 - Doctor profile with a 14-day availability calendar.
 - Book a slot from the profile, the directory, or the home page’s **Next available** module.

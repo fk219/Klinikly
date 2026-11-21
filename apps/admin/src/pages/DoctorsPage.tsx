@@ -1,5 +1,5 @@
 import { useEffect, useState, type FC } from 'react';
-import { Plus, Pencil, ToggleLeft, ToggleRight, Star, DollarSign, Clock } from 'lucide-react';
+import { Plus, Pencil, ToggleLeft, ToggleRight, DollarSign, Clock } from 'lucide-react';
 import { isApiError } from '@app/shared';
 import { apiListDoctors, apiCreateDoctor, apiUpdateDoctor, type DoctorInput, type AdminDoctor } from '../api/doctors';
 import { Button } from '../components/ui/Button';
@@ -120,7 +120,6 @@ export const DoctorsPage: FC = () => {
                   </div>
                   <p className="text-sm text-pine font-medium mt-0.5">{d.specialty}</p>
                   <div className="flex items-center gap-3 mt-2 text-xs text-muted">
-                    {d.rating && <span className="flex items-center gap-1"><Star className="h-3 w-3 text-yellow-400 fill-current" />{d.rating}</span>}
                     {d.experience && <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{d.experience}y</span>}
                     <span className="flex items-center gap-1"><DollarSign className="h-3 w-3" />${d.consultationFee}</span>
                   </div>

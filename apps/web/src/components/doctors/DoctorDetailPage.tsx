@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FC } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, ChevronLeft, ChevronRight, Star } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 import { isApiError, type Doctor, type Hospital } from '@app/shared';
 import { apiGetDoctor, apiGetDoctorAvailability, apiGetHospital } from '../../api/search';
 import type { DoctorAvailabilityItem } from '../../types';
@@ -147,15 +147,6 @@ export const DoctorDetailPage: FC = () => {
                     <p className="mt-1 text-sm text-muted">{doctor.specialty}</p>
 
                     <dl className="mt-6 space-y-3 border-t border-line pt-5 text-sm">
-                      {doctor.rating ? (
-                        <div className="flex items-center justify-between gap-4">
-                          <dt className="flex items-center gap-2 text-muted">
-                            <Star className="h-3.5 w-3.5" aria-hidden="true" />
-                            Rating
-                          </dt>
-                          <dd className="font-mono tabular-nums text-ink">{doctor.rating.toFixed(1)} / 5</dd>
-                        </div>
-                      ) : null}
                       <div className="flex items-center justify-between gap-4">
                         <dt className="text-muted">Experience</dt>
                         <dd className="font-mono tabular-nums text-ink">
