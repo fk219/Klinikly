@@ -4,6 +4,16 @@ A multi-tenant hospital appointment platform. Patients compare specialists, see 
 
 The product is designed as **care that can be scheduled**, not another generic healthcare landing page. The visual direction is documented in [`DESIGN.md`](DESIGN.md).
 
+## Live demo
+
+| Surface | URL |
+|---|---|
+| Patient app | https://klinikly-nine.vercel.app |
+| Hospital portal | https://klinikly-admin.vercel.app |
+| API health | https://klinikly-api.onrender.com/health |
+
+The patient app and hospital portal are Vercel static deployments backed by the Render API and MongoDB Atlas.
+
 ## Tech Stack
 
 | Layer | Technology |
