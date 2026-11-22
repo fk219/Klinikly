@@ -143,6 +143,9 @@ const NextAvailable = () => {
                 <div key={item} className="h-11 animate-pulse bg-stone" />
               ))}
             </div>
+            <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-muted">
+              Waking the hospital calendar…
+            </p>
           </div>
         )}
 
