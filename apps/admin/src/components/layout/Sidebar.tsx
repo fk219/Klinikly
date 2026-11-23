@@ -39,7 +39,7 @@ export const Sidebar: FC = () => {
             to={to}
             title={label}
             aria-label={label}
-            className={({ isActive }) =>
+            className={({ isActive }: { isActive: boolean }) =>
               `flex min-h-11 items-center gap-3 border-l-2 px-3 transition-colors ${
                 isActive
                   ? 'border-coral bg-canvas/10 text-canvas'
