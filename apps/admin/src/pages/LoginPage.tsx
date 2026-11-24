@@ -5,6 +5,19 @@ import { useAuth } from '../contexts/useAuth';
 
 const patientSiteUrl = import.meta.env.VITE_PATIENT_URL ?? 'http://localhost:5173';
 
+const DEMO_ADMINS = [
+  {
+    label: 'City Care Hospital',
+    email: 'admin@city-care-hospital.example.com',
+    password: 'Admin123!'
+  },
+  {
+    label: 'Green Valley Clinic',
+    email: 'admin@green-valley-clinic.example.com',
+    password: 'Admin123!'
+  }
+];
+
 export const LoginPage: FC = () => {
   const { user, login, loading } = useAuth();
   const [email, setEmail] = useState('');
@@ -19,6 +32,12 @@ export const LoginPage: FC = () => {
     setError('');
     const result = await login(email.trim(), password);
     if (!result.ok) setError(result.error ?? 'Login failed');
+  };
+
+  const handleDemo = async (account: (typeof DEMO_ADMINS)[number]) => {
+    setError('');
+    const result = await login(account.email, account.password);
+    if (!result.ok) setError(result.error ?? 'Demo login failed');
   };
 
   return (
@@ -141,19 +160,43 @@ export const LoginPage: FC = () => {
           </form>
 
           <div className="mt-8 max-w-md border border-line bg-canvas p-4">
-            <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-coral">Seeded demo administrator</p>
-            <dl className="mt-3 space-y-1.5 font-mono text-[11px] text-ink">
-              <div className="flex flex-wrap gap-x-2">
-                <dt className="text-muted">Email</dt>
-                <dd>admin@city-care-hospital.example.com</dd>
-              </div>
-              <div className="flex flex-wrap gap-x-2">
-                <dt className="text-muted">Password</dt>
-                <dd>Admin123!</dd>
-              </div>
-            </dl>
+            <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-coral">
+              Seeded demo administrators
+            </p>
+            <div className="mt-3 space-y-4">
+              {DEMO_ADMINS.map((account) => (
+                <div key={account.email} className="border-t border-line pt-3 first:border-t-0 first:pt-0">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-ink">
+                        {account.label}
+                      </p>
+                      <dl className="mt-1.5 space-y-1 font-mono text-[10px] text-ink">
+                        <div className="flex flex-wrap gap-x-2">
+                          <dt className="text-muted">Email</dt>
+                          <dd className="break-all">{account.email}</dd>
+                        </div>
+                        <div className="flex flex-wrap gap-x-2">
+                          <dt className="text-muted">Password</dt>
+                          <dd>{account.password}</dd>
+                        </div>
+                      </dl>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleDemo(account)}
+                      disabled={loading}
+                      className="shrink-0 border border-ink px-3 py-2 font-mono text-[9px] uppercase tracking-[0.12em] text-ink transition-colors hover:bg-ink hover:text-canvas disabled:opacity-50"
+                    >
+                      Enter
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
             <p className="mt-3 text-[11px] leading-relaxed text-muted">
-              Demo data only. Do not enter real patient or medical information.
+              Each administrator only sees their own hospital. Demo data only. Do not enter real
+              patient or medical information.
             </p>
           </div>
         </section>

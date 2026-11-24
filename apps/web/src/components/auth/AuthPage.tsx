@@ -6,6 +6,11 @@ import { useAuth } from '../../contexts/authStore';
 
 type Mode = 'sign-in' | 'create';
 
+const DEMO_PATIENT = {
+  email: 'patient@klinikly.example',
+  password: 'Patient123!',
+};
+
 export const AuthPage: FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -58,6 +63,16 @@ export const AuthPage: FC = () => {
       navigate(from, { replace: true });
     } else {
       toast.error('Registration failed. Check your details and try again.');
+    }
+  };
+
+  const handleDemo = async () => {
+    const success = await login(DEMO_PATIENT.email, DEMO_PATIENT.password);
+    if (success) {
+      toast.success('Signed in with the demo patient');
+      navigate(from, { replace: true });
+    } else {
+      toast.error('The demo patient account is unavailable');
     }
   };
 
@@ -251,6 +266,33 @@ export const AuthPage: FC = () => {
                   {loading ? 'Working…' : isLogin ? 'Sign in' : 'Create account'}
                 </button>
               </form>
+
+              <div className="mt-6 border border-line bg-canvas p-4">
+                <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-coral">
+                  Demo patient
+                </p>
+                <p className="mt-2 text-xs leading-relaxed text-muted">
+                  Open the appointment dashboard with a seeded patient account. No signup required.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleDemo}
+                  disabled={loading}
+                  className="mt-3 inline-flex min-h-11 w-full items-center justify-center border border-ink px-4 font-mono text-[10px] uppercase tracking-[0.14em] text-ink transition-colors hover:bg-ink hover:text-canvas disabled:opacity-50"
+                >
+                  {loading ? 'Opening the dashboard…' : 'Enter as demo patient'}
+                </button>
+                <dl className="mt-3 space-y-1 font-mono text-[10px] text-ink">
+                  <div className="flex flex-wrap gap-x-2">
+                    <dt className="text-muted">Email</dt>
+                    <dd>{DEMO_PATIENT.email}</dd>
+                  </div>
+                  <div className="flex flex-wrap gap-x-2">
+                    <dt className="text-muted">Password</dt>
+                    <dd>{DEMO_PATIENT.password}</dd>
+                  </div>
+                </dl>
+              </div>
 
               <p className="mt-5 font-mono text-[9px] uppercase leading-relaxed tracking-[0.12em] text-muted">
                 Patient accounts only. Hospital staff sign in through the admin portal.

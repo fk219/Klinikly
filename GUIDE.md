@@ -20,13 +20,18 @@ Klinikly is a multi-tenant hospital appointment platform. Patients compare speci
 
 The slot is claimed at the database level. Two patients cannot take the same slot. The confirmation dialog links to **My appointments**, where a visit can be cancelled. Cancelling returns the slot to the hospital schedule.
 
-### Demo note
+### Demo patient
 
-There is no seeded patient account. Create one with any email and an 8+ character password. Do not enter real medical information.
+Use the **Enter as demo patient** button on the sign-in page, or:
+
+- **Email:** `patient@klinikly.example`
+- **Password:** `Patient123!`
+
+The account opens the patient dashboard with live appointment actions. No signup is required. Do not enter real medical information.
 
 ## Hospital portal
 
-Two seeded hospital administrators are available:
+Two seeded hospital administrators are available. Use the **Enter** buttons on the hospital sign-in page, or:
 
 - **City Care Hospital:** `admin@city-care-hospital.example.com` / `Admin123!`
 - **Green Valley Clinic:** `admin@green-valley-clinic.example.com` / `Admin123!`

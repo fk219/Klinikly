@@ -84,6 +84,26 @@ export const seed = async () => {
   const adminPassword = 'Admin123!';
   const adminPasswordHash = await hashPassword(adminPassword);
 
+  const demoPatient = {
+    email: 'patient@klinikly.example',
+    password: 'Patient123!'
+  };
+  const demoPatientHash = await hashPassword(demoPatient.password);
+
+  await UserModel.findOneAndUpdate(
+    { email: demoPatient.email },
+    {
+      $set: {
+        email: demoPatient.email,
+        passwordHash: demoPatientHash,
+        name: 'Demo Patient',
+        phone: '+91 90000 00000',
+        role: 'patient'
+      }
+    },
+    { new: true, upsert: true }
+  );
+
   const results: Array<{ hospitalSlug: string; adminEmail: string; adminPassword: string }> = [];
 
   for (const h of hospitals) {
@@ -179,5 +199,5 @@ export const seed = async () => {
     results.push({ hospitalSlug: slug, adminEmail, adminPassword });
   }
 
-  return results;
+  return { admins: results, demoPatient };
 };
