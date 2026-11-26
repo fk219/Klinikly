@@ -7,6 +7,9 @@
     "apps/*",
     "packages/*"
   ],
+  "overrides": {
+    "proxy-addr": "^2.0.8"
+  },
   "scripts": {
     "dev:web": "npm --workspace apps/web run dev",
     "dev:api": "npm --workspace apps/api run dev",

@@ -22,11 +22,14 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Build shared package
+        run: npm run build:shared
 
       - name: Lint
         run: npm run lint --workspaces --if-present
@@ -40,9 +43,6 @@ jobs:
           MONGODB_URI: mongodb://localhost:27017/klinikly_test
           JWT_ACCESS_SECRET: ci-access-secret-32chars-minimum
           JWT_REFRESH_SECRET: ci-refresh-secret-32chars-minimum
-
-      - name: Build shared package
-        run: npm run build:shared
 
       - name: Build web
         run: npm run build:web

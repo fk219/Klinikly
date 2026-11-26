@@ -148,3 +148,22 @@ textarea {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ---------------------------------------------------------------- */
+/* Theme switch: night clinic                                       */
+/* ---------------------------------------------------------------- */
+html[data-theme="dark"] {
+  --canvas: #0d1512;
+  --stone: #14201b;
+  --ink: #e9f1ec;
+  --pine: #8fc7b4;
+  --sage: #1b2b24;
+  --coral: #e08a68;
+  --muted: rgba(233, 241, 236, 0.64);
+  --line: rgba(233, 241, 236, 0.16);
+  color-scheme: dark;
+}
+
+html[data-theme="dark"] ::selection {
+  background: rgba(143, 199, 180, 0.24);
+}
