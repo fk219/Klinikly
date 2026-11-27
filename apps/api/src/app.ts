@@ -4,8 +4,10 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import { env } from './config.js';
+import { accessLog } from './http/middleware/accessLog.js';
 import { errorHandler } from './http/middleware/errorHandler.js';
 import { requestId } from './http/middleware/requestId.js';
+import { adminAuditRouter } from './routes/adminAudit.js';
 import { adminAvailabilityRouter } from './routes/adminAvailability.js';
 import { adminAppointmentsRouter } from './routes/adminAppointments.js';
 import { adminDoctorsRouter } from './routes/adminDoctors.js';
@@ -40,6 +42,7 @@ export const createApp = () => {
   app.use(express.json({ limit: '1mb' }));
   app.use(cookieParser());
   app.use(requestId());
+  app.use(accessLog());
 
   // Rate-limit auth endpoints
   app.use('/auth/login', authLimiter);
@@ -53,6 +56,7 @@ export const createApp = () => {
   app.use('/admin', adminDoctorsRouter);
   app.use('/admin', adminAvailabilityRouter);
   app.use('/admin', adminAppointmentsRouter);
+  app.use('/admin', adminAuditRouter);
   app.use('/health', healthRouter);
 
   app.use(errorHandler());

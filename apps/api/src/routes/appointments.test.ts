@@ -81,21 +81,27 @@ describe('appointments', () => {
 
     const token = createAccessToken({ userId: patient._id.toString(), role: 'patient' });
 
-    const [book1, book2] = await Promise.all([
-      request(app)
-        .post('/appointments')
-        .set('Authorization', `Bearer ${token}`)
-        .send({ doctorId: doctor._id.toString(), slotStartAt: startAt.toISOString(), reason: 'Checkup' }),
-      request(app)
-        .post('/appointments')
-        .set('Authorization', `Bearer ${token}`)
-        .send({ doctorId: doctor._id.toString(), slotStartAt: startAt.toISOString(), reason: 'Checkup' })
-    ]);
+    const attempts = await Promise.all(
+      Array.from({ length: 100 }, () =>
+        request(app)
+          .post('/appointments')
+          .set('Authorization', `Bearer ${token}`)
+          .send({ doctorId: doctor._id.toString(), slotStartAt: startAt.toISOString(), reason: 'Checkup' })
+      )
+    );
 
-    const statuses = [book1.status, book2.status].sort((a, b) => a - b);
-    expect(statuses).toEqual([200, 409]);
+    const statusCounts = attempts.reduce<Record<number, number>>((counts, response) => {
+      counts[response.status] = (counts[response.status] ?? 0) + 1;
+      return counts;
+    }, {});
+
+    expect(statusCounts[200]).toBe(1);
+    expect(statusCounts[409]).toBe(99);
     expect(await AppointmentModel.countDocuments({ doctorId: doctor._id, slotStartAt: startAt })).toBe(1);
-  });
+
+    const slot = await AvailabilitySlotModel.findOne({ doctorId: doctor._id, startAt });
+    expect(slot?.status).toBe('booked');
+  }, 30_000);
 
   it('cancels a scheduled appointment and restores slot availability', async () => {
     const { createAccessToken } = await import('../auth/tokens.js');

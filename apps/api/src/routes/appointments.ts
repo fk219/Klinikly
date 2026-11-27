@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import mongoose from 'mongoose';
 import { z } from 'zod';
+import { recordAppointmentAudit } from '../audit/recordAppointmentAudit.js';
 import { AppointmentModel } from '../db/models/Appointment.js';
 import { AvailabilitySlotModel } from '../db/models/AvailabilitySlot.js';
 import { DoctorModel } from '../db/models/Doctor.js';
@@ -54,6 +55,18 @@ appointmentsRouter.post('/', async (req, res, next) => {
       throw err;
     });
 
+    await recordAppointmentAudit({
+      hospitalId: appointment.hospitalId,
+      actorUserId: req.auth!.userId,
+      actorRole: req.auth!.role,
+      action: 'appointment.booked',
+      entityId: appointment._id,
+      metadata: {
+        doctorId: appointment.doctorId.toString(),
+        slotStartAt: appointment.slotStartAt.toISOString()
+      }
+    });
+
     return res.json({
       data: {
         id: appointment._id.toString(),
@@ -92,6 +105,18 @@ appointmentsRouter.post('/:appointmentId/cancel', async (req, res, next) => {
       { doctorId: appointment.doctorId, startAt: appointment.slotStartAt, status: 'booked' },
       { $set: { status: 'available', source: 'override' } }
     );
+
+    await recordAppointmentAudit({
+      hospitalId: appointment.hospitalId,
+      actorUserId: req.auth!.userId,
+      actorRole: req.auth!.role,
+      action: 'appointment.cancelled',
+      entityId: appointment._id,
+      metadata: {
+        doctorId: appointment.doctorId.toString(),
+        slotStartAt: appointment.slotStartAt.toISOString()
+      }
+    });
 
     return res.json({ data: { ok: true } });
   } catch (err) {

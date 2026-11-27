@@ -14,7 +14,7 @@ Klinikly is a multi-tenant hospital appointment platform. Patients compare speci
 
 Klinikly is two frontends and one API. The patient app is a directory and booking flow. The hospital portal is an operations desk for a single hospital. The API owns the rules that connect them: who may administer which hospital, how a weekly schedule becomes slots, and how a slot becomes an appointment.
 
-The product is designed as care that can be scheduled, not another generic healthcare landing page. Every doctor, hospital, and slot in the demo comes from the seeded API; appointments are created by booking those slots. The interface does not invent availability. The visual direction is documented in [DESIGN.md](DESIGN.md).
+The product is designed as care that can be scheduled, not another generic healthcare landing page. Every doctor, hospital, and slot in the demo comes from the seeded API; appointments are created by booking those slots. The interface does not invent availability. The visual direction is documented in [DESIGN.md](DESIGN.md). Engineering details are in [docs/architecture.md](docs/architecture.md), [docs/runbook.md](docs/runbook.md), and [docs/openapi.yaml](docs/openapi.yaml).
 
 ## The signature idea
 
@@ -52,12 +52,15 @@ That is the core promise: availability is real, a slot has one owner, and a canc
 - Atomic booking, enforced by a conditional update and a unique appointment index.
 - Refresh-token rotation: tokens are random, stored as SHA-256 hashes, revoked atomically on refresh, and rejected on reuse.
 - Rate limiting on login and registration: 20 requests per 15 minutes per IP.
+- Append-only audit trail for booking, cancellation, and completion, scoped per hospital and exposed at `GET /admin/audit`.
+- Readiness probe at `/health/ready` checks MongoDB latency and returns `503` when the database is unavailable.
+- Structured request logs with request id, method, path, status, and duration.
 - Seed data for two hospitals, four doctors, two hospital administrators, one demo patient, weekly rules, and 30 days of slots.
-- API tests for auth, booking, availability, tenant isolation, and admin appointment actions.
+- API tests for auth, booking, availability, tenant isolation, audit visibility, readiness, and admin appointment actions.
 
 **What the demo proves**
 
-- **Atomic booking.** Two concurrent requests for the same slot produce one appointment and one `409`. Covered by an API test.
+- **Atomic booking.** 100 concurrent requests for the same slot produce exactly one appointment, one `200`, and ninety-nine `409`s. Covered by an API test.
 - **Tenant isolation.** A City Care administrator sees the two City Care doctors; a Green Valley administrator sees the two Green Valley doctors. The admin tests also confirm reads and writes stay inside the authenticated hospital.
 - **Refresh-token rotation.** A refresh token can be used once; reuse produces a `401`. Covered by an API test.
 - **Real availability.** Slots are generated from weekly rules, claimed at booking, released on cancellation, and filtered against the current time. Covered by API tests for the public availability response and the booking endpoint.
@@ -92,7 +95,7 @@ That is the core promise: availability is real, a slot has one owner, and a canc
 | Patient web | React 18, Vite 5, Tailwind CSS 3, React Router 6 | Directory, profiles, booking flow, auth, and patient dashboard. |
 | Hospital portal | React 19, Vite 6, Tailwind CSS 3, React Router 6 | Dashboard, doctors, availability, and appointment desk. |
 | Shared types | `@app/shared` workspace package | Shared TypeScript response types and `ApiResponse` helpers used by the patient and admin apps. |
-| Testing | Vitest, Supertest, mongodb-memory-server | 12 API tests and 2 frontend client tests, with no external database required. |
+| Testing | Vitest, Supertest, mongodb-memory-server | 14 API tests and 2 frontend client tests, with no external database required. |
 | Security and hosting | Helmet, CORS, express-rate-limit, Render, Vercel, MongoDB Atlas, GitHub Actions | Security headers, origin control, auth limits, API hosting, static frontends, and CI. |
 
 ## Architecture
@@ -148,7 +151,8 @@ apps/
 packages/
   shared/                   shared TypeScript types and API helpers
 docs/screenshots/
-docker-compose.yml          local MongoDB 7
+docker-compose.yml          local MongoDB 7; optional full API profile
+apps/api/Dockerfile         production API image
 render.yaml                 Render API service
 ```
 
@@ -165,7 +169,13 @@ render.yaml                 Render API service
 git clone https://github.com/fk219/Klinikly.git
 cd Klinikly
 npm install
-docker compose up -d
+docker compose up -d mongo
+```
+
+To run the API in a container instead of `npm run dev:api`:
+
+```bash
+docker compose --profile full up --build
 ```
 
 ### Configure environment
@@ -242,6 +252,7 @@ All hospitals, doctors, schedules, and appointments are seeded demo data. Do not
 | Method | Path | Purpose |
 |---|---|---|
 | `GET` | `/health` | Return `{ data: { ok: true } }`. |
+| `GET` | `/health/ready` | Check MongoDB connectivity and return `503` when unavailable. |
 | `POST` | `/auth/register` | Register a patient, issue an access token, and set the refresh cookie. |
 | `POST` | `/auth/login` | Sign in and issue a new token pair. |
 | `POST` | `/auth/refresh` | Rotate the refresh token and return a new access token. Reuse returns `401`. |
@@ -268,6 +279,7 @@ All hospitals, doctors, schedules, and appointments are seeded demo data. Do not
 | `GET` | `/admin/appointments` | List hospital appointments. Supports `doctorId`, `from`, and `to`. |
 | `POST` | `/admin/appointments/:id/cancel` | Cancel a scheduled appointment and release its slot. |
 | `POST` | `/admin/appointments/:id/complete` | Mark a scheduled appointment completed. |
+| `GET` | `/admin/audit` | Read the hospital-scoped append-only audit trail. Supports `limit`. |
 
 All `/admin/*` routes require a hospital administrator token. `/appointments` requires a patient token. `/me` and `/me/appointments` require a valid access token.
 
@@ -284,7 +296,7 @@ npm --workspace apps/api run test
 npm --workspace apps/web run test
 ```
 
-- **API:** 12 Vitest tests across auth, doctor and hospital search, availability, booking, cancellation, admin appointment actions, and tenant isolation. The booking test fires concurrent requests at one slot and expects one appointment and one `409`.
+- **API:** 14 Vitest tests across auth, doctor and hospital search, availability, booking, cancellation, admin appointment actions, tenant isolation, audit visibility, and readiness. The booking test fires 100 concurrent requests at one slot and expects exactly one appointment.
 - **Web:** 2 Vitest tests for the API client's refresh-and-retry behaviour and its use of `fetch`.
 - **Admin:** no test script. CI typechecks and builds the portal.
 
