@@ -89,3 +89,12 @@ jobs:
           name: klinikly-playwright-report
           path: playwright-report/
           if-no-files-found: ignore
+
+  docker:
+    name: Build API image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build production image
+        run: docker build -f apps/api/Dockerfile -t klinikly-api:ci .
