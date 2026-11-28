@@ -14,7 +14,7 @@ Klinikly is a multi-tenant hospital appointment platform. Patients compare speci
 
 Klinikly is two frontends and one API. The patient app is a directory and booking flow. The hospital portal is an operations desk for a single hospital. The API owns the rules that connect them: who may administer which hospital, how a weekly schedule becomes slots, and how a slot becomes an appointment.
 
-The product is designed as care that can be scheduled, not another generic healthcare landing page. Every doctor, hospital, and slot in the demo comes from the seeded API; appointments are created by booking those slots. The interface does not invent availability. The visual direction is documented in [DESIGN.md](DESIGN.md). Engineering details are in [docs/architecture.md](docs/architecture.md), [docs/runbook.md](docs/runbook.md), and [docs/openapi.yaml](docs/openapi.yaml).
+The product is designed as care that can be scheduled, not another generic healthcare landing page. Every doctor, hospital, and slot in the demo comes from the seeded API; appointments are created by booking those slots. The interface does not invent availability. The visual direction is documented in [DESIGN.md](DESIGN.md). Engineering details are in [docs/architecture.md](docs/architecture.md), [docs/runbook.md](docs/runbook.md), [docs/performance.md](docs/performance.md), and [docs/openapi.yaml](docs/openapi.yaml).
 
 ## The signature idea
 
@@ -294,10 +294,14 @@ The root script runs every workspace test script. The suite uses `mongodb-memory
 ```bash
 npm --workspace apps/api run test
 npm --workspace apps/web run test
+npm run test:e2e
+npm run test:load
 ```
 
 - **API:** 14 Vitest tests across auth, doctor and hospital search, availability, booking, cancellation, admin appointment actions, tenant isolation, audit visibility, and readiness. The booking test fires 100 concurrent requests at one slot and expects exactly one appointment.
 - **Web:** 2 Vitest tests for the API client's refresh-and-retry behaviour and its use of `fetch`.
+- **Browser E2E:** Playwright boots an in-memory MongoDB, seeds the real API, starts the patient app, signs in with the demo patient, and books a real slot. CI runs it as a separate **Browser E2E** job.
+- **Load:** `npm run test:load` reports p50/p95/p99 for a read endpoint. Local seeded result: **486 req/s, p95 58 ms, 0 errors**; production smoke and caveats are in [docs/performance.md](docs/performance.md).
 - **Admin:** no test script. CI typechecks and builds the portal.
 
 ## Deployment
